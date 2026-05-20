@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { supabase } from "@/app/utils/supabase";
+import { dbService } from "@/app/utils/dbService";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 

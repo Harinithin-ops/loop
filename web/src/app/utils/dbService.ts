@@ -958,9 +958,9 @@ export const dbService = {
     const user = await this.getActiveUser();
     if (!user || user.id === targetUserId) return false;
 
-    // 1. Save to local storage first to guarantee UI updates
+    // 1. Save to localStorage for instant local UI feedback
     const localReqs = getLocalFollowRequests();
-    const filtered = localReqs.filter(r => 
+    const filtered = localReqs.filter(r =>
       !(r.senderId === user.id && r.receiverId === targetUserId) &&
       !(r.senderId === targetUserId && r.receiverId === user.id)
     );
@@ -974,18 +974,36 @@ export const dbService = {
     filtered.push(newRequest);
     saveLocalFollowRequests(filtered);
 
-    // 2. Try Supabase upsert (handles duplicate key gracefully)
+    // 2. Try via Next.js API route (bypasses RLS using service role key)
     try {
-      const { error: sbError } = await supabase.from("follow_requests").upsert(
-        {
+      const res = await fetch("/api/follow", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "send",
           senderId: user.id,
           receiverId: targetUserId,
-          status: "pending",
-        },
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        console.error("API follow request failed:", json.error);
+      } else {
+        console.log("Follow request sent via API:", json);
+        return true;
+      }
+    } catch (e) {
+      console.error("API follow request exception:", e);
+    }
+
+    // 3. Fallback: Try direct Supabase upsert
+    try {
+      const { error: sbError } = await supabase.from("follow_requests").upsert(
+        { senderId: user.id, receiverId: targetUserId, status: "pending" },
         { onConflict: "senderId,receiverId", ignoreDuplicates: false }
       );
       if (sbError) {
-        console.error("Supabase follow request upsert error:", sbError.message, sbError.details);
+        console.error("Supabase follow request upsert error:", sbError.message, sbError.code, sbError.details);
       }
     } catch (e) {
       console.error("Supabase follow request insert failed:", e);
@@ -1023,46 +1041,54 @@ export const dbService = {
   async acceptFollowRequest(requestId: string): Promise<boolean> {
     // 1. Update in local storage
     const localReqs = getLocalFollowRequests();
-    const updated = localReqs.map(r => {
-      if (r.id === requestId) {
-        return { ...r, status: "accepted" as const };
-      }
-      return r;
-    });
+    const updated = localReqs.map(r => r.id === requestId ? { ...r, status: "accepted" as const } : r);
     saveLocalFollowRequests(updated);
 
-    // 2. Try Supabase update
+    // 2. Use API route (bypasses RLS)
     try {
-      await supabase
-        .from("follow_requests")
-        .update({ status: "accepted" })
-        .eq("id", requestId);
+      const res = await fetch("/api/follow", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "accept", requestId }),
+      });
+      if (!res.ok) {
+        const json = await res.json();
+        console.error("API accept follow request failed:", json.error);
+      }
     } catch (e) {
-      console.warn("Supabase accept follow request failed:", e);
+      console.error("API accept follow request exception:", e);
+      // Fallback to direct Supabase
+      try {
+        await supabase.from("follow_requests").update({ status: "accepted" }).eq("id", requestId);
+      } catch {}
     }
 
     return true;
   },
 
   async rejectFollowRequest(requestId: string): Promise<boolean> {
-    // 1. Update/delete in local storage
+    // 1. Update in local storage
     const localReqs = getLocalFollowRequests();
-    const updated = localReqs.map(r => {
-      if (r.id === requestId) {
-        return { ...r, status: "rejected" as const };
-      }
-      return r;
-    });
+    const updated = localReqs.map(r => r.id === requestId ? { ...r, status: "rejected" as const } : r);
     saveLocalFollowRequests(updated);
 
-    // 2. Try Supabase update
+    // 2. Use API route (bypasses RLS)
     try {
-      await supabase
-        .from("follow_requests")
-        .update({ status: "rejected" })
-        .eq("id", requestId);
+      const res = await fetch("/api/follow", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "reject", requestId }),
+      });
+      if (!res.ok) {
+        const json = await res.json();
+        console.error("API reject follow request failed:", json.error);
+      }
     } catch (e) {
-      console.warn("Supabase reject follow request failed:", e);
+      console.error("API reject follow request exception:", e);
+      // Fallback to direct Supabase
+      try {
+        await supabase.from("follow_requests").update({ status: "rejected" }).eq("id", requestId);
+      } catch {}
     }
 
     return true;
@@ -1108,17 +1134,16 @@ export const dbService = {
 
     const requestsMap = new Map<string, any>();
 
-    // 1. Fetch from Supabase
+    // 1. Fetch via API route (uses service role key - bypasses RLS, works cross-user)
     try {
-      const { data } = await supabase
-        .from("follow_requests")
-        .select("*")
-        .eq("receiverId", user.id)
-        .eq("status", "pending")
-        .order("createdAt", { ascending: false });
-
-      if (data) {
-        data.forEach((r: any) => {
+      const res = await fetch("/api/follow", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "incoming", receiverId: user.id }),
+      });
+      if (res.ok) {
+        const json = await res.json();
+        (json.requests || []).forEach((r: any) => {
           requestsMap.set(`${r.senderId}-${r.receiverId}`, {
             id: r.id,
             senderId: r.senderId,
@@ -1126,16 +1151,36 @@ export const dbService = {
             createdAt: r.createdAt,
           });
         });
+      } else {
+        console.error("API incoming requests failed:", await res.text());
       }
     } catch (e) {
-      console.warn("Supabase incoming requests fetch failed:", e);
+      console.error("API incoming requests exception:", e);
+      // Fallback: Fetch directly from Supabase
+      try {
+        const { data } = await supabase
+          .from("follow_requests")
+          .select("*")
+          .eq("receiverId", user.id)
+          .eq("status", "pending")
+          .order("createdAt", { ascending: false });
+        if (data) {
+          data.forEach((r: any) => {
+            requestsMap.set(`${r.senderId}-${r.receiverId}`, {
+              id: r.id, senderId: r.senderId, status: r.status, createdAt: r.createdAt,
+            });
+          });
+        }
+      } catch {}
     }
 
-    // 2. Fetch from localStorage
+    // 2. Merge localStorage (for same-device local requests)
     const localReqs = getLocalFollowRequests();
     localReqs.forEach(r => {
       if (r.receiverId === user.id && r.status === "pending") {
-        requestsMap.set(`${r.senderId}-${r.receiverId}`, r);
+        if (!requestsMap.has(`${r.senderId}-${r.receiverId}`)) {
+          requestsMap.set(`${r.senderId}-${r.receiverId}`, r);
+        }
       }
     });
 
