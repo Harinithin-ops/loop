@@ -135,7 +135,14 @@ export const DEMO_PROFILES = [
 ];
 
 export const getLocalFollowRequests = (): LocalFollowRequest[] => {
-  return [];
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem("loop_local_follow_requests") ||
+                sessionStorage.getItem("loop_local_follow_requests");
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
 };
 
 export const saveLocalFollowRequests = (requests: LocalFollowRequest[]) => {
@@ -148,7 +155,14 @@ export const saveLocalFollowRequests = (requests: LocalFollowRequest[]) => {
 };
 
 export const getLocalMessages = (): LocalMessage[] => {
-  return [];
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem("loop_local_messages") ||
+                sessionStorage.getItem("loop_local_messages");
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
 };
 
 export const saveLocalMessages = (messages: LocalMessage[]) => {
@@ -960,15 +974,21 @@ export const dbService = {
     filtered.push(newRequest);
     saveLocalFollowRequests(filtered);
 
-    // 2. Try Supabase insert
+    // 2. Try Supabase upsert (handles duplicate key gracefully)
     try {
-      await supabase.from("follow_requests").insert({
-        senderId: user.id,
-        receiverId: targetUserId,
-        status: "pending",
-      });
+      const { error: sbError } = await supabase.from("follow_requests").upsert(
+        {
+          senderId: user.id,
+          receiverId: targetUserId,
+          status: "pending",
+        },
+        { onConflict: "senderId,receiverId", ignoreDuplicates: false }
+      );
+      if (sbError) {
+        console.error("Supabase follow request upsert error:", sbError.message, sbError.details);
+      }
     } catch (e) {
-      console.warn("Supabase follow request insert failed:", e);
+      console.error("Supabase follow request insert failed:", e);
     }
 
     return true;
