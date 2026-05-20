@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { supabase } from "@/app/utils/supabase";
+import { dbService, DEMO_PROFILES } from "@/app/utils/dbService";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -12,20 +13,32 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
+  const handleDemoUserClick = async (demoEmail: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const profile = await dbService.getOrCreateProfileByEmail(demoEmail);
+      const mockUser = {
+        id: profile.id,
+        email: profile.gmail || profile.email,
+        fullName: profile.fullName,
+        username: profile.username,
+        avatar: profile.avatar,
+        bio: profile.bio || "Demo User Bio",
+      };
+      sessionStorage.setItem("loop_mock_session", JSON.stringify(mockUser));
+      localStorage.setItem("loop_mock_session", JSON.stringify(mockUser));
+      window.dispatchEvent(new Event("loop_auth_changed"));
+      router.push("/");
+    } catch (err: any) {
+      setError(err?.message || "Failed to log in as demo user");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleBypassLogin = async () => {
-    const profile = await dbService.getOrCreateProfileByEmail(email || "tester@loop.ai");
-    const mockUser = {
-      id: profile.id,
-      email: profile.gmail || profile.email,
-      fullName: profile.fullName,
-      username: profile.username,
-      avatar: profile.avatar,
-      bio: profile.bio || "Demo User Bio",
-    };
-    sessionStorage.setItem("loop_mock_session", JSON.stringify(mockUser));
-    localStorage.setItem("loop_mock_session", JSON.stringify(mockUser));
-    window.dispatchEvent(new Event("loop_auth_changed"));
-    router.push("/");
+    await handleDemoUserClick(email || "tester@loop.ai");
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -152,6 +165,33 @@ export default function LoginPage() {
             Instant Demo Bypass Login
           </button>
         </form>
+
+        <div className="space-y-4 pt-4 border-t border-black/5">
+          <p className="text-xs font-bold text-center text-on-surface-variant uppercase tracking-wider font-label-caps">
+            Select a Demo Creator to Login Instantly
+          </p>
+          <div className="grid grid-cols-2 gap-2 max-h-[220px] overflow-y-auto pr-1 no-scrollbar">
+            {DEMO_PROFILES.map((demo) => (
+              <button
+                key={demo.id}
+                type="button"
+                onClick={() => handleDemoUserClick(demo.gmail)}
+                disabled={loading}
+                className="flex items-center gap-2 p-2 rounded-xl border border-black/5 hover:border-primary/30 hover:bg-primary/5 active:scale-95 transition-all text-left bg-surface-container-low/30"
+              >
+                <img
+                  src={demo.avatar_url}
+                  alt={demo.full_name}
+                  className="w-8 h-8 rounded-full object-cover border border-black/10 flex-shrink-0"
+                />
+                <div className="min-w-0">
+                  <p className="text-xs font-bold text-on-surface truncate">{demo.full_name}</p>
+                  <p className="text-[10px] text-primary truncate">@{demo.username}</p>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
 
         <p className="text-center text-xs text-on-surface-variant">
           Don't have an account?{" "}

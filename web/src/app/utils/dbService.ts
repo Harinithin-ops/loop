@@ -131,7 +131,12 @@ export const DEMO_PROFILES = [
   { id: "bb856f24-28e9-4ddd-b5ad-5155ac1cc34d", username: "kani_06", full_name: "kanishka", avatar_url: "/images/avatar_sarah_1779191804823.png", bio: "Social loop connector", gmail: "kanishkaaaj2006@gmail.com" },
   { id: "sim-user-1", username: "luna_dream", full_name: "Luna Dream", avatar_url: "/images/avatar_elena_1779191722727.png", bio: "Cyberpunk visual artist", gmail: "luna@loop.ai" },
   { id: "sim-user-2", username: "elena_rostova", full_name: "Elena Rostova", avatar_url: "/images/avatar_elena_1779191722727.png", bio: "AI Developer & Writer", gmail: "elena@loop.ai" },
-  { id: "sim-user-3", username: "marcus_v", full_name: "Marcus Vance", avatar_url: "/images/avatar_marcus_1779191788520.png", bio: "Gadget reviewer & developer", gmail: "marcus@loop.ai" }
+  { id: "sim-user-3", username: "marcus_v", full_name: "Marcus Vance", avatar_url: "/images/avatar_marcus_1779191788520.png", bio: "Gadget reviewer & developer", gmail: "marcus@loop.ai" },
+  { id: "sim-user-4", username: "alex_design", full_name: "Alex Rivera", avatar_url: "/images/avatar_sarah_1779191804823.png", bio: "Lead UX Designer & Photographer", gmail: "alex@loop.ai" },
+  { id: "sim-user-5", username: "sophia_code", full_name: "Sophia Chen", avatar_url: "/images/avatar_elena_1779191722727.png", bio: "Full Stack Engineer & Dog Lover", gmail: "sophia@loop.ai" },
+  { id: "sim-user-6", username: "lucas_sound", full_name: "Lucas Martinez", avatar_url: "/images/avatar_marcus_1779191788520.png", bio: "Music Producer & Sound Designer", gmail: "lucas@loop.ai" },
+  { id: "sim-user-7", username: "emma_travels", full_name: "Emma Watson", avatar_url: "/images/avatar_sarah_1779191804823.png", bio: "Digital Nomad & Travel Blogger", gmail: "emma@loop.ai" },
+  { id: "sim-user-8", username: "david_fit", full_name: "David Miller", avatar_url: "/images/avatar_marcus_1779191788520.png", bio: "Personal Trainer & Nutritionist", gmail: "david@loop.ai" }
 ];
 
 export const getLocalFollowRequests = (): LocalFollowRequest[] => {
