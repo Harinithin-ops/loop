@@ -62,12 +62,41 @@ export async function POST(req: NextRequest) {
       if (!requestId) {
         return NextResponse.json({ error: "Missing requestId" }, { status: 400 });
       }
-      const { error } = await supabaseAdmin
+
+      // Fetch the original request to get senderId and receiverId
+      const { data: request, error: fetchError } = await supabaseAdmin
+        .from("follow_requests")
+        .select("senderId, receiverId")
+        .eq("id", requestId)
+        .maybeSingle();
+
+      if (fetchError || !request) {
+        return NextResponse.json({ error: "Original follow request not found" }, { status: 404 });
+      }
+
+      // 1. Accept the original request
+      const { error: acceptError } = await supabaseAdmin
         .from("follow_requests")
         .update({ status: "accepted" })
         .eq("id", requestId);
-      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-      return NextResponse.json({ message: "Request accepted" });
+
+      if (acceptError) {
+        return NextResponse.json({ error: acceptError.message }, { status: 500 });
+      }
+
+      // 2. Automatically create and accept the reverse request (follow back / mutual access)
+      const { error: reverseError } = await supabaseAdmin
+        .from("follow_requests")
+        .upsert(
+          { senderId: request.receiverId, receiverId: request.senderId, status: "accepted" },
+          { onConflict: "senderId,receiverId", ignoreDuplicates: false }
+        );
+
+      if (reverseError) {
+        console.warn("Could not automatically create mutual follow back request:", reverseError.message);
+      }
+
+      return NextResponse.json({ message: "Request accepted and mutual follow established" });
     }
 
     if (action === "reject") {

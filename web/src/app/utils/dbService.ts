@@ -999,35 +999,59 @@ export const dbService = {
     if (!user) return "none";
     if (user.id === targetUserId) return "none";
 
-    // 1. Check local storage
-    const localReqs = getLocalFollowRequests();
-    const localSent = localReqs.find(r => r.senderId === user.id && r.receiverId === targetUserId);
-    const localReceived = localReqs.find(r => r.senderId === targetUserId && r.receiverId === user.id);
-
-    if (localSent?.status === "accepted" || localReceived?.status === "accepted") return "following";
-    if (localSent?.status === "pending") return "pending";
-
-    // 2. Check Supabase
+    // 1. Check Supabase first (source of truth for real-time cross-device updates)
     try {
       const { data: accepted } = await supabase
         .from("follow_requests")
-        .select("id")
+        .select("id, createdAt")
         .eq("senderId", user.id)
         .eq("receiverId", targetUserId)
         .eq("status", "accepted")
         .maybeSingle();
 
-      if (accepted) return "following";
+      if (accepted) {
+        // Sync local storage so future local reads match
+        const localReqs = getLocalFollowRequests();
+        const existing = localReqs.find(r => r.senderId === user.id && r.receiverId === targetUserId);
+        if (!existing || existing.status !== "accepted") {
+          const filtered = localReqs.filter(r => !(r.senderId === user.id && r.receiverId === targetUserId));
+          filtered.push({
+            id: existing?.id || "req-" + Math.random().toString(36).substring(2, 9),
+            senderId: user.id,
+            receiverId: targetUserId,
+            status: "accepted",
+            createdAt: accepted.createdAt || existing?.createdAt || new Date().toISOString()
+          });
+          saveLocalFollowRequests(filtered);
+        }
+        return "following";
+      }
 
       const { data: reverseAccepted } = await supabase
         .from("follow_requests")
-        .select("id")
+        .select("id, createdAt")
         .eq("senderId", targetUserId)
         .eq("receiverId", user.id)
         .eq("status", "accepted")
         .maybeSingle();
 
-      if (reverseAccepted) return "following";
+      if (reverseAccepted) {
+        // Sync local storage so future local reads match
+        const localReqs = getLocalFollowRequests();
+        const existing = localReqs.find(r => r.senderId === targetUserId && r.receiverId === user.id);
+        if (!existing || existing.status !== "accepted") {
+          const filtered = localReqs.filter(r => !(r.senderId === targetUserId && r.receiverId === user.id));
+          filtered.push({
+            id: existing?.id || "req-" + Math.random().toString(36).substring(2, 9),
+            senderId: targetUserId,
+            receiverId: user.id,
+            status: "accepted",
+            createdAt: reverseAccepted.createdAt || existing?.createdAt || new Date().toISOString()
+          });
+          saveLocalFollowRequests(filtered);
+        }
+        return "following";
+      }
 
       const { data: pending } = await supabase
         .from("follow_requests")
@@ -1037,10 +1061,58 @@ export const dbService = {
         .eq("status", "pending")
         .maybeSingle();
 
-      if (pending) return "pending";
+      if (pending) {
+        // Sync pending status locally if missing
+        const localReqs = getLocalFollowRequests();
+        const existing = localReqs.find(r => r.senderId === user.id && r.receiverId === targetUserId);
+        if (!existing) {
+          localReqs.push({
+            id: "req-" + Math.random().toString(36).substring(2, 9),
+            senderId: user.id,
+            receiverId: targetUserId,
+            status: "pending",
+            createdAt: new Date().toISOString()
+          });
+          saveLocalFollowRequests(localReqs);
+        }
+        return "pending";
+      }
+
+      const { data: reversePending } = await supabase
+        .from("follow_requests")
+        .select("id")
+        .eq("senderId", targetUserId)
+        .eq("receiverId", user.id)
+        .eq("status", "pending")
+        .maybeSingle();
+
+      if (reversePending) {
+        // Sync pending status locally if missing
+        const localReqs = getLocalFollowRequests();
+        const existing = localReqs.find(r => r.senderId === targetUserId && r.receiverId === user.id);
+        if (!existing) {
+          localReqs.push({
+            id: "req-" + Math.random().toString(36).substring(2, 9),
+            senderId: targetUserId,
+            receiverId: user.id,
+            status: "pending",
+            createdAt: new Date().toISOString()
+          });
+          saveLocalFollowRequests(localReqs);
+        }
+        return "pending";
+      }
     } catch (e) {
       console.warn("Supabase follow status check failed:", e);
     }
+
+    // 2. Fallback to local storage (e.g. offline fallback or local mock data)
+    const localReqs = getLocalFollowRequests();
+    const localSent = localReqs.find(r => r.senderId === user.id && r.receiverId === targetUserId);
+    const localReceived = localReqs.find(r => r.senderId === targetUserId && r.receiverId === user.id);
+
+    if (localSent?.status === "accepted" || localReceived?.status === "accepted") return "following";
+    if (localSent?.status === "pending" || localReceived?.status === "pending") return "pending";
 
     return "none";
   },
@@ -1130,9 +1202,30 @@ export const dbService = {
   },
 
   async acceptFollowRequest(requestId: string): Promise<boolean> {
-    // 1. Update in local storage
+    // 1. Find the request first to see who sent it
     const localReqs = getLocalFollowRequests();
-    const updated = localReqs.map(r => r.id === requestId ? { ...r, status: "accepted" as const } : r);
+    const req = localReqs.find(r => r.id === requestId);
+    let updated = localReqs.map(r => r.id === requestId ? { ...r, status: "accepted" as const } : r);
+
+    if (req) {
+      // Also add the reverse request to local storage so both are accepted locally (mutual follow)
+      const reverseExists = updated.some(r => r.senderId === req.receiverId && r.receiverId === req.senderId);
+      if (!reverseExists) {
+        updated.push({
+          id: "local-req-rev-" + Math.random().toString(36).substring(2, 9),
+          senderId: req.receiverId,
+          receiverId: req.senderId,
+          status: "accepted",
+          createdAt: new Date().toISOString()
+        });
+      } else {
+        updated = updated.map(r => 
+          (r.senderId === req.receiverId && r.receiverId === req.senderId)
+            ? { ...r, status: "accepted" as const }
+            : r
+        );
+      }
+    }
     saveLocalFollowRequests(updated);
 
     // 2. Use API route (bypasses RLS)
@@ -1335,28 +1428,71 @@ export const dbService = {
 
   async getConnectedUserIds(userId: string): Promise<string[]> {
     const ids = new Set<string>();
+    const localReqs = getLocalFollowRequests();
+    let updatedLocal = [...localReqs];
+    let dirty = false;
 
     try {
       const { data: sent } = await supabase
         .from("follow_requests")
-        .select("receiverId")
+        .select("id, receiverId, createdAt")
         .eq("senderId", userId)
         .eq("status", "accepted");
 
       const { data: received } = await supabase
         .from("follow_requests")
-        .select("senderId")
+        .select("id, senderId, createdAt")
         .eq("receiverId", userId)
         .eq("status", "accepted");
 
-      (sent || []).forEach((r: any) => ids.add(r.receiverId));
-      (received || []).forEach((r: any) => ids.add(r.senderId));
+      if (sent) {
+        sent.forEach((r: any) => {
+          ids.add(r.receiverId);
+          // Sync to local storage
+          const existing = updatedLocal.find(l => l.senderId === userId && l.receiverId === r.receiverId);
+          if (!existing || existing.status !== "accepted") {
+            updatedLocal = updatedLocal.filter(l => !(l.senderId === userId && l.receiverId === r.receiverId));
+            updatedLocal.push({
+              id: r.id || "req-" + Math.random().toString(36).substring(2, 9),
+              senderId: userId,
+              receiverId: r.receiverId,
+              status: "accepted",
+              createdAt: r.createdAt || new Date().toISOString()
+            });
+            dirty = true;
+          }
+        });
+      }
+
+      if (received) {
+        received.forEach((r: any) => {
+          ids.add(r.senderId);
+          // Sync to local storage
+          const existing = updatedLocal.find(l => l.senderId === r.senderId && l.receiverId === userId);
+          if (!existing || existing.status !== "accepted") {
+            updatedLocal = updatedLocal.filter(l => !(l.senderId === r.senderId && l.receiverId === userId));
+            updatedLocal.push({
+              id: r.id || "req-" + Math.random().toString(36).substring(2, 9),
+              senderId: r.senderId,
+              receiverId: userId,
+              status: "accepted",
+              createdAt: r.createdAt || new Date().toISOString()
+            });
+            dirty = true;
+          }
+        });
+      }
     } catch (e) {
       console.warn("Supabase getConnectedUserIds failed:", e);
     }
 
-    const localReqs = getLocalFollowRequests();
-    localReqs.forEach(r => {
+    if (dirty) {
+      saveLocalFollowRequests(updatedLocal);
+    }
+
+    // Fallback/merge from local storage
+    const currentLocal = getLocalFollowRequests();
+    currentLocal.forEach(r => {
       if (r.status === "accepted") {
         if (r.senderId === userId) ids.add(r.receiverId);
         if (r.receiverId === userId) ids.add(r.senderId);
