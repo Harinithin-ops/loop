@@ -1,0 +1,13 @@
+{
+  "name": "loop-root",
+  "version": "1.0.0",
+  "description": "Root orchestrator for Loop Social Media app",
+  "scripts": {
+    "dev:web": "npm run dev --prefix web",
+    "dev:server": "npm run dev --prefix server",
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:web\""
+  },
+  "dependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

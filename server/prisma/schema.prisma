@@ -1,0 +1,241 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id               String           @id @default(uuid())
+  email            String           @unique
+  username         String           @unique
+  password         String
+  name             String?
+  avatar           String?
+  coverBanner      String?
+  bio              String?
+  creatorScore     Int              @default(75)
+  isVerified       Boolean          @default(false)
+  savedBoards      SaveBoard[]
+  posts            Post[]
+  comments         Comment[]
+  likes            Like[]
+  saves            Save[]
+  followers        Follower[]       @relation("UserFollowers")
+  following        Follower[]       @relation("UserFollowing")
+  notifications    Notification[]   @relation("UserNotifications")
+  notificationsBy  Notification[]   @relation("SenderNotifications")
+  messagesSent     Message[]        @relation("SentMessages")
+  chats            ChatMember[]
+  stories          Story[]
+  storyViews       StoryView[]
+  reels            Reel[]
+  aiLogs           AiLog[]
+  reportsFiled     Report[]         @relation("Reporter")
+  reportsAgainst   Report[]         @relation("ReportedUser")
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+}
+
+model Post {
+  id               String           @id @default(uuid())
+  caption          String?
+  imageUrl         String?          // Fallback image url
+  media            PostMedia[]      // Image carousel support
+  tone             String?          // e.g. Cyberpunk, Minimalist, Hype
+  type             String           @default("FEED") // FEED, PIN, THREAD
+  location         String?
+  authorId         String
+  author           User             @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  likes            Like[]
+  comments         Comment[]
+  saves            Save[]
+  reports          Report[]
+  moderationFlags  ModerationFlag[]
+  savedBoards      SaveBoard[] @relation("BoardPosts")
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+}
+
+model PostMedia {
+  id        String   @id @default(uuid())
+  url       String
+  type      String   @default("IMAGE") // IMAGE, VIDEO
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
+
+model Comment {
+  id              String           @id @default(uuid())
+  content         String
+  toxicityScore   Float?
+  authorId        String
+  author          User             @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  postId          String
+  post            Post             @relation(fields: [postId], references: [id], onDelete: Cascade)
+  parentId        String?          // Nested comments
+  parent          Comment?         @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies         Comment[]        @relation("CommentReplies")
+  reports         Report[]
+  moderationFlags ModerationFlag[]
+  createdAt       DateTime         @default(now())
+}
+
+model Like {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, postId])
+}
+
+model Save {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, postId])
+}
+
+model Follower {
+  id          String   @id @default(uuid())
+  followerId  String
+  follower    User     @relation("UserFollowing", fields: [followerId], references: [id], onDelete: Cascade)
+  followingId String
+  following   User     @relation("UserFollowers", fields: [followingId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+
+  @@unique([followerId, followingId])
+}
+
+model Chat {
+  id        String       @id @default(uuid())
+  name      String?
+  isGroup   Boolean      @default(false)
+  members   ChatMember[]
+  messages  Message[]
+  createdAt DateTime     @default(now())
+}
+
+model ChatMember {
+  id        String   @id @default(uuid())
+  chatId    String
+  chat      Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([chatId, userId])
+}
+
+model Message {
+  id             String   @id @default(uuid())
+  content        String
+  translatedText String?
+  senderId       String
+  sender         User     @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  chatId         String
+  chat           Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  createdAt      DateTime @default(now())
+}
+
+model Story {
+  id        String      @id @default(uuid())
+  mediaUrl  String
+  userId    String
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  views     StoryView[]
+  expiresAt DateTime
+  createdAt DateTime    @default(now())
+}
+
+model StoryView {
+  id        String   @id @default(uuid())
+  storyId   String
+  story     Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([storyId, userId])
+}
+
+model Reel {
+  id         String   @id @default(uuid())
+  videoUrl   String
+  caption    String?
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  likesCount Int      @default(0)
+  createdAt  DateTime @default(now())
+}
+
+model Notification {
+  id          String   @id @default(uuid())
+  type        String   // LIKE, COMMENT, FOLLOW, MESSAGE, AI_ALERT
+  userId      String   // Recipient
+  user        User     @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
+  senderId    String?  // Actor
+  sender      User?    @relation("SenderNotifications", fields: [senderId], references: [id], onDelete: Cascade)
+  message     String
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+}
+
+model Report {
+  id             String   @id @default(uuid())
+  reporterId     String
+  reporter       User     @relation("Reporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  reportedUserId String?
+  reportedUser   User?    @relation("ReportedUser", fields: [reportedUserId], references: [id], onDelete: Cascade)
+  postId         String?
+  post           Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  commentId      String?
+  comment        Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  reason         String
+  status         String   @default("PENDING") // PENDING, RESOLVED, BANNED
+  createdAt      DateTime @default(now())
+}
+
+model SaveBoard {
+  id        String   @id @default(uuid())
+  name      String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  posts     Post[]   @relation("BoardPosts")
+  createdAt DateTime @default(now())
+}
+
+model AiLog {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  toolUsed  String   // TOXICITY, CAPTION, FACT_CHECK, TRANSLATE
+  prompt    String
+  response  String
+  createdAt DateTime @default(now())
+}
+
+model ModerationFlag {
+  id        String   @id @default(uuid())
+  postId    String?
+  post      Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  commentId String?
+  comment   Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  reason    String
+  score     Float
+  createdAt DateTime @default(now())
+}
