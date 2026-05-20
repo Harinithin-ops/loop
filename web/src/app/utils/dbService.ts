@@ -179,7 +179,13 @@ export const saveLocalMessages = (messages: LocalMessage[]) => {
   } catch {}
 };
 
+export const profileCache = new Map<string, { name: string; username: string; avatar: string; bio: string; gmail: string }>();
+
 const getProfile = async (userId: string) => {
+  if (profileCache.has(userId)) {
+    return profileCache.get(userId)!;
+  }
+
   let dbProfile = null;
   try {
     const { data } = await supabase
@@ -192,26 +198,31 @@ const getProfile = async (userId: string) => {
     console.warn("Could not query profile from Supabase:", e);
   }
 
-  if (!dbProfile) {
-    const demo = DEMO_PROFILES.find(p => p.id === userId);
-    if (demo) {
-      return {
-        name: demo.full_name,
-        username: demo.username,
-        avatar: demo.avatar_url,
-        bio: demo.bio,
-        gmail: demo.gmail,
-      };
+  const result = (() => {
+    if (!dbProfile) {
+      const demo = DEMO_PROFILES.find(p => p.id === userId);
+      if (demo) {
+        return {
+          name: demo.full_name,
+          username: demo.username,
+          avatar: demo.avatar_url,
+          bio: demo.bio,
+          gmail: demo.gmail,
+        };
+      }
     }
-  }
 
-  return {
-    name: dbProfile?.full_name || dbProfile?.username || "Unknown User",
-    username: dbProfile?.username || "",
-    avatar: dbProfile?.avatar_url || "/images/avatar_marcus_1779191788520.png",
-    bio: dbProfile?.bio || "",
-    gmail: dbProfile?.gmail || "",
-  };
+    return {
+      name: dbProfile?.full_name || dbProfile?.username || "Unknown User",
+      username: dbProfile?.username || "",
+      avatar: dbProfile?.avatar_url || "/images/avatar_marcus_1779191788520.png",
+      bio: dbProfile?.bio || "",
+      gmail: dbProfile?.gmail || "",
+    };
+  })();
+
+  profileCache.set(userId, result);
+  return result;
 };
 
 // ===================== SERVICE =====================
@@ -664,6 +675,31 @@ export const dbService = {
 
     if (error || !data) return [];
 
+    // Pre-batch missing profiles to optimize DB requests
+    const authorIds = Array.from(new Set(data.map((p: any) => p.authorId)));
+    const missingIds = authorIds.filter((id) => !profileCache.has(id));
+    if (missingIds.length > 0) {
+      try {
+        const { data: dbProfiles } = await supabase
+          .from("profiles")
+          .select("*")
+          .in("id", missingIds);
+        if (dbProfiles) {
+          dbProfiles.forEach((p: any) => {
+            profileCache.set(p.id, {
+              name: p.full_name || p.username || "Unknown User",
+              username: p.username || "",
+              avatar: p.avatar_url || "/images/avatar_marcus_1779191788520.png",
+              bio: p.bio || "",
+              gmail: p.gmail || "",
+            });
+          });
+        }
+      } catch (e) {
+        console.warn("Batch profile prefetch error:", e);
+      }
+    }
+
     return Promise.all(
       data.map(async (p: any) => {
         const profile = await getProfile(p.authorId);
@@ -765,6 +801,31 @@ export const dbService = {
 
     if (error || !data) return [];
 
+    // Pre-batch missing profiles to optimize DB requests
+    const userIds = Array.from(new Set(data.map((s: any) => s.userId)));
+    const missingIds = userIds.filter((id) => !profileCache.has(id));
+    if (missingIds.length > 0) {
+      try {
+        const { data: dbProfiles } = await supabase
+          .from("profiles")
+          .select("*")
+          .in("id", missingIds);
+        if (dbProfiles) {
+          dbProfiles.forEach((p: any) => {
+            profileCache.set(p.id, {
+              name: p.full_name || p.username || "Unknown User",
+              username: p.username || "",
+              avatar: p.avatar_url || "/images/avatar_marcus_1779191788520.png",
+              bio: p.bio || "",
+              gmail: p.gmail || "",
+            });
+          });
+        }
+      } catch (e) {
+        console.warn("Batch profile prefetch error:", e);
+      }
+    }
+
     return Promise.all(
       data.map(async (s: any) => {
         const profile = await getProfile(s.userId);
@@ -839,6 +900,31 @@ export const dbService = {
       .order("createdAt", { ascending: false });
 
     if (error || !data) return [];
+
+    // Pre-batch missing profiles to optimize DB requests
+    const userIds = Array.from(new Set(data.map((r: any) => r.userId)));
+    const missingIds = userIds.filter((id) => !profileCache.has(id));
+    if (missingIds.length > 0) {
+      try {
+        const { data: dbProfiles } = await supabase
+          .from("profiles")
+          .select("*")
+          .in("id", missingIds);
+        if (dbProfiles) {
+          dbProfiles.forEach((p: any) => {
+            profileCache.set(p.id, {
+              name: p.full_name || p.username || "Unknown User",
+              username: p.username || "",
+              avatar: p.avatar_url || "/images/avatar_marcus_1779191788520.png",
+              bio: p.bio || "",
+              gmail: p.gmail || "",
+            });
+          });
+        }
+      } catch (e) {
+        console.warn("Batch profile prefetch error:", e);
+      }
+    }
 
     return Promise.all(
       data.map(async (r: any) => {

@@ -37,16 +37,19 @@ export default function HomeFeed() {
     { sender: "assistant", text: "Hey! I'm Loop Assistant. Ask me to generate captions, optimize hashtags, or analyze feed vibes!" },
   ]);
 
-  const loadData = async () => {
-    setLoading(true);
+  const loadData = async (isInitial = false) => {
+    if (isInitial || (posts.length === 0 && stories.length === 0)) {
+      setLoading(true);
+    }
     try {
-      const user = await dbService.getActiveUser();
+      const [user, fetchedPosts, fetchedStories] = await Promise.all([
+        dbService.getActiveUser(),
+        dbService.getPosts(),
+        dbService.getStories(),
+      ]);
+
       setCurrentUser(user);
-
-      const fetchedPosts = await dbService.getPosts();
       setPosts(fetchedPosts);
-
-      const fetchedStories = await dbService.getStories();
       setStories(fetchedStories);
 
       // Initialize reactions for each post
@@ -59,7 +62,7 @@ export default function HomeFeed() {
           { emoji: "🚀", label: "Motivating", count: Math.floor(Math.random() * 30) + 1, active: false },
         ];
       });
-      setPostReactions(reactionsMap);
+      setPostReactions((prev) => ({ ...reactionsMap, ...prev }));
     } catch (err) {
       console.error("Error loading feed data:", err);
     } finally {
@@ -68,12 +71,13 @@ export default function HomeFeed() {
   };
 
   useEffect(() => {
-    loadData();
+    loadData(true);
 
     // Listen to publish events from Navbar/Create dialog
-    window.addEventListener("loop_feed_refresh", loadData);
+    const handleRefresh = () => loadData(false);
+    window.addEventListener("loop_feed_refresh", handleRefresh);
     return () => {
-      window.removeEventListener("loop_feed_refresh", loadData);
+      window.removeEventListener("loop_feed_refresh", handleRefresh);
     };
   }, []);
 
