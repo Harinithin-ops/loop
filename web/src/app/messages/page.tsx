@@ -105,19 +105,48 @@ export default function Messages() {
   const handleAcceptRequest = async (req: FollowRequest) => {
     setAcceptingId(req.id);
     try {
-      await dbService.acceptFollowRequest(req.id);
-      // Remove from requests
+      // 1. Remove from requests list locally
       setIncomingRequests(prev => prev.filter(r => r.id !== req.id));
-      // Flash the new chat entry
+      
+      // 2. Construct local chat object so it is visible IMMEDIATELY
+      const newChatObj: RealChat = {
+        id: req.senderId,
+        name: req.senderName,
+        username: req.senderUsername,
+        avatar: req.senderAvatar,
+        messages: [],
+        unreadCount: 0
+      };
+
+      // 3. Insert and select instantly (eliminates database/RLS race conditions)
+      setChats(prev => {
+        if (prev.some(c => c.id === req.senderId)) return prev;
+        return [newChatObj, ...prev];
+      });
+      setSelectedChatId(req.senderId);
+      setActiveTab("chats");
+
+      // 4. Flash the new chat entry
       setNewChatFlash(req.senderId);
       setTimeout(() => setNewChatFlash(null), 3000);
-      // Refresh chats — the accepted user now appears for BOTH parties
+
+      // 5. Send backend follow accept (creates mutual follow in background)
+      await dbService.acceptFollowRequest(req.id);
+
+      // 6. Refresh chats in background to fetch true messages state
       const updatedChats = await dbService.getChats();
       setChats(updatedChats);
-      // Auto-open the new chat & switch to Chats tab
+
+      // 7. Re-confirm selection
       const newChat = updatedChats.find(c => c.id === req.senderId);
-      if (newChat) setSelectedChatId(newChat.id);
-      setActiveTab("chats");
+      if (newChat) {
+        setSelectedChatId(newChat.id);
+      } else {
+        // Fallback: keep our local object selected
+        setSelectedChatId(req.senderId);
+      }
+    } catch (err) {
+      console.error("Error accepting request:", err);
     } finally {
       setAcceptingId(null);
     }

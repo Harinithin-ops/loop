@@ -85,12 +85,30 @@ export async function POST(req: NextRequest) {
       }
 
       // 2. Automatically create and accept the reverse request (follow back / mutual access)
-      const { error: reverseError } = await supabaseAdmin
+      const { data: existingReverse } = await supabaseAdmin
         .from("follow_requests")
-        .upsert(
-          { senderId: request.receiverId, receiverId: request.senderId, status: "accepted" },
-          { onConflict: "senderId,receiverId", ignoreDuplicates: false }
-        );
+        .select("id")
+        .eq("senderId", request.receiverId)
+        .eq("receiverId", request.senderId)
+        .maybeSingle();
+
+      let reverseError = null;
+      if (existingReverse) {
+        const { error } = await supabaseAdmin
+          .from("follow_requests")
+          .update({ status: "accepted" })
+          .eq("id", existingReverse.id);
+        reverseError = error;
+      } else {
+        const { error } = await supabaseAdmin
+          .from("follow_requests")
+          .insert({
+            senderId: request.receiverId,
+            receiverId: request.senderId,
+            status: "accepted"
+          });
+        reverseError = error;
+      }
 
       if (reverseError) {
         console.warn("Could not automatically create mutual follow back request:", reverseError.message);

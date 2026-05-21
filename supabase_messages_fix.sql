@@ -50,8 +50,13 @@ CREATE POLICY "Allow anyone to update messages"
   TO public
   USING (true);
 
--- Step 7: Enable Realtime for live messaging across devices
-ALTER PUBLICATION supabase_realtime ADD TABLE public.messages;
+-- Step 7: Enable Realtime (safe - skips if already a member)
+DO $$
+BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE public.messages;
+EXCEPTION WHEN duplicate_object THEN
+  RAISE NOTICE 'messages already in supabase_realtime, skipping.';
+END $$;
 
 -- ============================================================
 -- Demo user profiles (ensure these exist for instant login)
@@ -72,3 +77,22 @@ ON CONFLICT (id) DO UPDATE SET
   avatar_url = EXCLUDED.avatar_url,
   bio = EXCLUDED.bio,
   gmail = EXCLUDED.gmail;
+
+-- ============================================================
+-- Step 8: Configure public RLS policies for follow_requests
+-- ============================================================
+ALTER TABLE public.follow_requests ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow anyone to insert follow requests" ON public.follow_requests;
+DROP POLICY IF EXISTS "Allow users to view their own follow requests" ON public.follow_requests;
+DROP POLICY IF EXISTS "Allow users to update follow requests" ON public.follow_requests;
+DROP POLICY IF EXISTS "Allow users to delete follow requests" ON public.follow_requests;
+DROP POLICY IF EXISTS "Allow public SELECT on follow_requests" ON public.follow_requests;
+DROP POLICY IF EXISTS "Allow public INSERT on follow_requests" ON public.follow_requests;
+DROP POLICY IF EXISTS "Allow public UPDATE on follow_requests" ON public.follow_requests;
+DROP POLICY IF EXISTS "Allow public DELETE on follow_requests" ON public.follow_requests;
+
+CREATE POLICY "Allow public SELECT on follow_requests" ON public.follow_requests FOR SELECT TO public USING (true);
+CREATE POLICY "Allow public INSERT on follow_requests" ON public.follow_requests FOR INSERT TO public WITH CHECK (true);
+CREATE POLICY "Allow public UPDATE on follow_requests" ON public.follow_requests FOR UPDATE TO public USING (true);
+CREATE POLICY "Allow public DELETE on follow_requests" ON public.follow_requests FOR DELETE TO public USING (true);

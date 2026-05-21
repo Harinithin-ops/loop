@@ -1203,14 +1203,24 @@ export const dbService = {
       console.error("API follow request exception:", e);
     }
 
-    // 3. Fallback: Try direct Supabase upsert
+    // 3. Fallback: Try direct Supabase check-then-insert/update
     try {
-      const { error: sbError } = await supabase.from("follow_requests").upsert(
-        { senderId: user.id, receiverId: targetUserId, status: "pending" },
-        { onConflict: "senderId,receiverId", ignoreDuplicates: false }
-      );
-      if (sbError) {
-        console.error("Supabase follow request upsert error:", sbError.message, sbError.code, sbError.details);
+      const { data: existing } = await supabase
+        .from("follow_requests")
+        .select("id")
+        .eq("senderId", user.id)
+        .eq("receiverId", targetUserId)
+        .maybeSingle();
+
+      if (existing) {
+        await supabase
+          .from("follow_requests")
+          .update({ status: "pending" })
+          .eq("id", existing.id);
+      } else {
+        await supabase
+          .from("follow_requests")
+          .insert({ senderId: user.id, receiverId: targetUserId, status: "pending" });
       }
     } catch (e) {
       console.error("Supabase follow request insert failed:", e);
