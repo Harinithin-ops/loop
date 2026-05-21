@@ -169,7 +169,7 @@ export default function ExploreSearch() {
                   <Link
                     key={user.id}
                     href={`/user/${user.username}`}
-                    onClick={() => setShowResults(false)}
+                    onClick={() => setTimeout(() => setShowResults(false), 10)}
                     className="flex items-center gap-3 px-4 py-3 hover:bg-primary/5 transition-colors"
                   >
                     <img
