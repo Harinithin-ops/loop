@@ -168,7 +168,7 @@ export default function ExploreSearch() {
                 {searchResults.map((user) => (
                   <Link
                     key={user.id}
-                    href={`/user/${user.username}`}
+                    href={`/user/${user.username || user.id}`}
                     onClick={() => setTimeout(() => setShowResults(false), 10)}
                     className="flex items-center gap-3 px-4 py-3 hover:bg-primary/5 transition-colors"
                   >
@@ -239,7 +239,7 @@ export default function ExploreSearch() {
             {suggestedUsers.map((u) => (
               <Link
                 key={u.id}
-                href={u.username ? `/user/${u.username}` : "#"}
+                href={`/user/${u.username || u.id}`}
                 className="flex flex-col items-center gap-2 min-w-[75px] cursor-pointer group"
               >
                 <div className="w-16 h-16 rounded-full story-border p-0.5 overflow-hidden group-hover:scale-105 active:scale-90 transition-transform relative bg-white shadow-md">
@@ -314,11 +314,7 @@ export default function ExploreSearch() {
             {filteredItems.map((item) => (
               <Link
                 key={item.id}
-                href={
-                  item.authorUsername
-                    ? `/user/${item.authorUsername}`
-                    : "#"
-                }
+                href={`/user/${item.authorUsername || item.authorId}`}
                 className="masonry-item glass-panel rounded-lg overflow-hidden flex flex-col relative shadow-md border-white/40 cursor-pointer"
               >
                 {item.trending && (

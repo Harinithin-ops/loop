@@ -304,12 +304,21 @@ export const dbService = {
   async getProfileByUsername(username: string): Promise<UserProfile | null> {
     let profileData = null;
     try {
-      const { data } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("username", username)
-        .single();
-      profileData = data;
+      if (isValidUUID(username)) {
+        const { data } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", username)
+          .single();
+        profileData = data;
+      } else {
+        const { data } = await supabase
+          .from("profiles")
+          .select("*")
+          .ilike("username", username)
+          .maybeSingle();
+        profileData = data;
+      }
     } catch (e) {
       console.warn("Could not query profile by username from Supabase:", e);
     }
