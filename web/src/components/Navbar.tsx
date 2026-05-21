@@ -132,6 +132,14 @@ export default function Navbar({ children }: { children: React.ReactNode }) {
       .subscribe();
 
     window.addEventListener("loop_auth_changed", checkUser);
+
+    const handleOpenCreateStory = () => {
+      setCreateType("story");
+      setIsCreateOpen(true);
+      setCreateStep("upload");
+    };
+    window.addEventListener("loop_open_create_story", handleOpenCreateStory);
+
     const interval = setInterval(async () => {
       try {
         const c = await dbService.getTotalUnreadCount();
@@ -149,6 +157,7 @@ export default function Navbar({ children }: { children: React.ReactNode }) {
       supabase.removeChannel(followChannel);
       supabase.removeChannel(notifChannel);
       window.removeEventListener("loop_auth_changed", checkUser);
+      window.removeEventListener("loop_open_create_story", handleOpenCreateStory);
       clearInterval(interval);
     };
   }, []);
@@ -626,7 +635,9 @@ export default function Navbar({ children }: { children: React.ReactNode }) {
                 )}
 
                 <h3 className="text-white font-bold text-[15px] tracking-tight">
-                  {createStep === "upload" ? "New post" : "Create new post"}
+                  {createStep === "upload" 
+                    ? `New ${createType}` 
+                    : `Create new ${createType}`}
                 </h3>
 
                 {createStep === "details" ? (

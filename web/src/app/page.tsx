@@ -178,7 +178,10 @@ export default function HomeFeed() {
       <section className="overflow-hidden">
         <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar scroll-smooth">
           {/* Add Story Action */}
-          <div className="flex-shrink-0 flex flex-col items-center gap-2 cursor-pointer">
+          <div 
+            onClick={() => window.dispatchEvent(new Event("loop_open_create_story"))}
+            className="flex-shrink-0 flex flex-col items-center gap-2 cursor-pointer"
+          >
             <div className="w-[72px] h-[72px] rounded-full p-[2.5px] neumorphic-card flex items-center justify-center bg-surface-container-lowest border border-white/60 hover:scale-105 transition-transform duration-200">
               <div className="w-full h-full rounded-full bg-surface-container-high flex items-center justify-center text-primary">
                 <span className="material-symbols-outlined text-[24px]">add</span>
