@@ -164,7 +164,7 @@ export default function Navbar({ children }: { children: React.ReactNode }) {
     sessionStorage.removeItem("loop_mock_session");
     localStorage.removeItem("loop_mock_session");
     window.dispatchEvent(new Event("loop_auth_changed"));
-    window.location.href = "/";
+    window.location.href = "/login";
   };
 
   // File handling

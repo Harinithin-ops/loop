@@ -15,7 +15,7 @@ export default function CreatorProfile() {
     sessionStorage.removeItem("loop_mock_session");
     localStorage.removeItem("loop_mock_session");
     window.dispatchEvent(new Event("loop_auth_changed"));
-    window.location.href = "/";
+    window.location.href = "/login";
   };
   const [followerCount, setFollowerCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
