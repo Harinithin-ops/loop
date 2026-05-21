@@ -269,9 +269,11 @@ export default function HomeFeed() {
                           • {post.createdAt}
                         </span>
                       </div>
-                      <span className="text-[10px] text-on-surface-variant block mt-0.5 text-left">
-                        Royal Enfield
-                      </span>
+                      {post.authorBio && (
+                        <span className="text-[10px] text-on-surface-variant block mt-0.5 text-left truncate max-w-[160px]">
+                          {post.authorBio}
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">

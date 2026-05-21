@@ -31,6 +31,7 @@ export interface RealPost {
   authorName: string;
   authorUsername: string;
   authorAvatar: string;
+  authorBio: string;
   createdAt: string;
   tone?: string;
   aiTags: string[];
@@ -599,6 +600,7 @@ export const dbService = {
           authorName: profile.name,
           authorUsername: profile.username,
           authorAvatar: profile.avatar,
+          authorBio: profile.bio || "",
           createdAt: new Date(p.createdAt || Date.now()).toLocaleDateString(),
           tone: p.tone,
           aiTags: p.aiTags || [],
@@ -625,6 +627,7 @@ export const dbService = {
       authorName: profile.name,
       authorUsername: profile.username,
       authorAvatar: profile.avatar,
+      authorBio: profile.bio || "",
       createdAt: new Date(p.createdAt || Date.now()).toLocaleDateString(),
       tone: p.tone,
       aiTags: p.aiTags || [],
@@ -660,6 +663,7 @@ export const dbService = {
       authorName: user.fullName,
       authorUsername: user.username,
       authorAvatar: user.avatar,
+      authorBio: user.bio || "",
       createdAt: new Date(data.createdAt || Date.now()).toLocaleDateString(),
       tone: data.tone,
       aiTags: data.aiTags || [],
