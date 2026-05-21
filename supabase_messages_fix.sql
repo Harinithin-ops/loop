@@ -10,11 +10,7 @@ ALTER TABLE public.messages
   ADD COLUMN IF NOT EXISTS is_read boolean DEFAULT false,
   ADD COLUMN IF NOT EXISTS created_at timestamp with time zone DEFAULT now();
 
--- Step 2: If old camelCase columns exist, migrate data to snake_case
-UPDATE public.messages SET sender_id = "senderId" WHERE sender_id IS NULL AND "senderId" IS NOT NULL;
-UPDATE public.messages SET receiver_id = "receiverId" WHERE receiver_id IS NULL AND "receiverId" IS NOT NULL;
-UPDATE public.messages SET is_read = "isRead" WHERE is_read IS NULL AND "isRead" IS NOT NULL;
-UPDATE public.messages SET created_at = "createdAt" WHERE created_at IS NULL AND "createdAt" IS NOT NULL;
+-- Step 2: (No migration needed - table already uses snake_case column names)
 
 -- Step 3: Create indexes for fast message lookup
 CREATE INDEX IF NOT EXISTS messages_sender_id_idx ON public.messages(sender_id);
@@ -24,32 +20,35 @@ CREATE INDEX IF NOT EXISTS messages_created_at_idx ON public.messages(created_at
 -- Step 4: Enable RLS
 ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
 
--- Step 5: Drop old RLS policies to prevent conflicts
+-- Step 5: Drop any existing conflicting policies
 DROP POLICY IF EXISTS "Allow users to read their own messages" ON public.messages;
 DROP POLICY IF EXISTS "Allow users to send messages" ON public.messages;
 DROP POLICY IF EXISTS "Allow receivers to update messages" ON public.messages;
 DROP POLICY IF EXISTS "Users can view their messages" ON public.messages;
 DROP POLICY IF EXISTS "Users can send messages" ON public.messages;
+DROP POLICY IF EXISTS "Receivers can mark as read" ON public.messages;
 
--- Step 6: Create correct RLS policies (works with both camelCase and snake_case)
-CREATE POLICY "Users can view their messages"
+-- Step 6: Create RLS policies
+-- Note: Using "TO public" allows demo users (who bypass Supabase auth) to also send/read messages.
+-- For a production-only app you would restrict to authenticated users only.
+DROP POLICY IF EXISTS "Allow anyone to view messages" ON public.messages;
+DROP POLICY IF EXISTS "Allow anyone to send messages" ON public.messages;
+DROP POLICY IF EXISTS "Allow anyone to update messages" ON public.messages;
+
+CREATE POLICY "Allow anyone to view messages"
   ON public.messages FOR SELECT
-  USING (
-    auth.uid() = sender_id OR auth.uid() = receiver_id OR
-    auth.uid() = "senderId" OR auth.uid() = "receiverId"
-  );
+  TO public
+  USING (true);
 
-CREATE POLICY "Users can send messages"
+CREATE POLICY "Allow anyone to send messages"
   ON public.messages FOR INSERT
-  WITH CHECK (
-    auth.uid() = sender_id OR auth.uid() = "senderId"
-  );
+  TO public
+  WITH CHECK (true);
 
-CREATE POLICY "Receivers can mark as read"
+CREATE POLICY "Allow anyone to update messages"
   ON public.messages FOR UPDATE
-  USING (
-    auth.uid() = receiver_id OR auth.uid() = "receiverId"
-  );
+  TO public
+  USING (true);
 
 -- Step 7: Enable Realtime for live messaging across devices
 ALTER PUBLICATION supabase_realtime ADD TABLE public.messages;
