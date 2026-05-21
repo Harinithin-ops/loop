@@ -244,10 +244,23 @@ async function uploadFileToStorage(file: File, folder: string): Promise<string> 
 
 export { uploadFileToStorage };
 
+// In-memory cache to prevent high-frequency Supabase queries and connection rate-limiting
+let cachedActiveUser: RealUser | null = null;
+const profilesEnsured = new Set<string>();
+
+if (typeof window !== "undefined") {
+  // Bust the caches instantly when auth state changes (e.g. login, logout, password reset)
+  supabase.auth.onAuthStateChange(() => {
+    cachedActiveUser = null;
+    profilesEnsured.clear();
+  });
+}
+
 export const dbService = {
   // =================== AUTH ===================
 
   async ensureProfileExists(user: RealUser): Promise<void> {
+    if (profilesEnsured.has(user.id)) return;
     try {
       const { data: existing } = await supabase
         .from("profiles")
@@ -265,13 +278,15 @@ export const dbService = {
           gmail: user.gmail || user.email
         });
       }
+      profilesEnsured.add(user.id);
     } catch (e) {
       console.warn("ensureProfileExists failed:", e);
     }
   },
 
   async getActiveUser(): Promise<RealUser | null> {
-    // PRIORITY 1: Real Supabase auth session (works across all devices & tabs)
+    if (cachedActiveUser) return cachedActiveUser;
+
     try {
       const {
         data: { session },
@@ -290,6 +305,7 @@ export const dbService = {
           gmail: profile.gmail || session.user.email || "",
         };
         await this.ensureProfileExists(userObj);
+        cachedActiveUser = userObj;
         return userObj;
       }
     } catch (e) {
@@ -456,6 +472,9 @@ export const dbService = {
       .eq("id", user.id);
 
     if (error) return { success: false, error: error.message };
+    
+    // Invalidate cachedActiveUser memory cache
+    cachedActiveUser = null;
     return { success: true };
   },
 
@@ -481,6 +500,7 @@ export const dbService = {
     // Bust the in-memory cache so the next getActiveUser() fetches fresh data
     // (including the new avatar_url) instead of returning the stale cached profile
     profileCache.delete(user.id);
+    cachedActiveUser = null;
     return true;
   },
 
@@ -1236,16 +1256,18 @@ export const dbService = {
 
     const requestsMap = new Map<string, any>();
 
-    // 1. Fetch via API route (uses service role key - bypasses RLS, works cross-user)
+    // 1. Query Supabase directly (preferred for speed & efficiency - uses direct RLS check)
+    let fetchedDirectly = false;
     try {
-      const res = await fetch("/api/follow", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "incoming", receiverId: user.id }),
-      });
-      if (res.ok) {
-        const json = await res.json();
-        (json.requests || []).forEach((r: any) => {
+      const { data, error } = await supabase
+        .from("follow_requests")
+        .select("*")
+        .eq("receiverId", user.id)
+        .eq("status", "pending")
+        .order("createdAt", { ascending: false });
+
+      if (!error && data) {
+        data.forEach((r: any) => {
           requestsMap.set(`${r.senderId}-${r.receiverId}`, {
             id: r.id,
             senderId: r.senderId,
@@ -1253,27 +1275,34 @@ export const dbService = {
             createdAt: r.createdAt,
           });
         });
-      } else {
-        console.error("API incoming requests failed:", await res.text());
+        fetchedDirectly = true;
       }
     } catch (e) {
-      console.error("API incoming requests exception:", e);
-      // Fallback: Fetch directly from Supabase
+      console.warn("Direct follow requests fetch failed, falling back to API:", e);
+    }
+
+    // Fallback: Fetch via API route only if direct query failed
+    if (!fetchedDirectly) {
       try {
-        const { data } = await supabase
-          .from("follow_requests")
-          .select("*")
-          .eq("receiverId", user.id)
-          .eq("status", "pending")
-          .order("createdAt", { ascending: false });
-        if (data) {
-          data.forEach((r: any) => {
+        const res = await fetch("/api/follow", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "incoming", receiverId: user.id }),
+        });
+        if (res.ok) {
+          const json = await res.json();
+          (json.requests || []).forEach((r: any) => {
             requestsMap.set(`${r.senderId}-${r.receiverId}`, {
-              id: r.id, senderId: r.senderId, status: r.status, createdAt: r.createdAt,
+              id: r.id,
+              senderId: r.senderId,
+              status: r.status,
+              createdAt: r.createdAt,
             });
           });
         }
-      } catch {}
+      } catch (e) {
+        console.error("API follow requests fallback failed:", e);
+      }
     }
 
     // 2. Merge localStorage (for same-device local requests)
@@ -1287,6 +1316,31 @@ export const dbService = {
     });
 
     const combined = Array.from(requestsMap.values());
+
+    // 3. Pre-batch missing profiles for the combined requests in ONE database query
+    const senderIds = Array.from(new Set(combined.map((r: any) => r.senderId)));
+    const missingIds = senderIds.filter((id) => !profileCache.has(id));
+    if (missingIds.length > 0) {
+      try {
+        const { data: dbProfiles } = await supabase
+          .from("profiles")
+          .select("*")
+          .in("id", missingIds);
+        if (dbProfiles) {
+          dbProfiles.forEach((p: any) => {
+            profileCache.set(p.id, {
+              name: p.full_name || p.username || "Unknown User",
+              username: p.username || "",
+              avatar: p.avatar_url || "/images/avatar_marcus_1779191788520.png",
+              bio: p.bio || "",
+              gmail: p.gmail || "",
+            });
+          });
+        }
+      } catch (e) {
+        console.warn("Batch profile prefetch error in getIncomingRequests:", e);
+      }
+    }
 
     return Promise.all(
       combined.map(async (r: any) => {
@@ -1786,6 +1840,31 @@ export const dbService = {
       if (error) throw error;
       if (!data) return requestNotifications;
 
+      // Pre-batch missing profiles for notification senders in ONE database query
+      const senderIds = Array.from(new Set(data.map((n: any) => n.sender_id)));
+      const missingIds = senderIds.filter((id) => !profileCache.has(id));
+      if (missingIds.length > 0) {
+        try {
+          const { data: dbProfiles } = await supabase
+            .from("profiles")
+            .select("*")
+            .in("id", missingIds);
+          if (dbProfiles) {
+            dbProfiles.forEach((p: any) => {
+              profileCache.set(p.id, {
+                name: p.full_name || p.username || "Unknown User",
+                username: p.username || "",
+                avatar: p.avatar_url || "/images/avatar_marcus_1779191788520.png",
+                bio: p.bio || "",
+                gmail: p.gmail || "",
+              });
+            });
+          }
+        } catch (e) {
+          console.warn("Batch profile prefetch error in getNotifications:", e);
+        }
+      }
+
       const dbNotifications = await Promise.all(
         data.map(async (n: any) => {
           const profile = await getProfile(n.sender_id);
@@ -1799,8 +1878,8 @@ export const dbService = {
             type: n.type as any,
             relatedId: n.related_id,
             content: n.content,
-            isRead: n.is_read,
-            createdAt: n.created_at,
+            isRead: n.is_read || false,
+            createdAt: n.created_at || new Date().toISOString(),
           };
         })
       );
