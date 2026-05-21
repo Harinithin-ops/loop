@@ -5,10 +5,19 @@ import { dbService, RealPost, RealReel, RealUser, FollowRequest, uploadFileToSto
 import Link from "next/link";
 import PostDetailModal from "@/components/PostDetailModal";
 import { supabase } from "@/app/utils/supabase";
+import { useTheme } from "@/app/utils/ThemeProvider";
 
 export default function CreatorProfile() {
   const [currentUser, setCurrentUser] = useState<RealUser | null>(null);
   const [activeTab, setActiveTab] = useState<"posts" | "reels" | "saved">("posts");
+
+  const { theme, toggleTheme } = useTheme();
+
+  // Settings states
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [isPrivateAccount, setIsPrivateAccount] = useState(false);
+  const [blockedUsers, setBlockedUsers] = useState<string[]>([]);
+  const [newBlockInput, setNewBlockInput] = useState("");
 
   const handleSignOut = async () => {
     sessionStorage.removeItem("loop_mock_session");
@@ -82,6 +91,24 @@ export default function CreatorProfile() {
   };
 
   useEffect(() => { loadProfileData(); window.addEventListener("loop_feed_refresh", loadProfileData); return () => window.removeEventListener("loop_feed_refresh", loadProfileData); }, []);
+
+  useEffect(() => {
+    if (currentUser) {
+      const privateVal = localStorage.getItem(`loop_user_private_${currentUser.id}`);
+      setIsPrivateAccount(privateVal === "true");
+
+      const blockedVal = localStorage.getItem(`loop_blocked_users_${currentUser.id}`);
+      if (blockedVal) {
+        try {
+          setBlockedUsers(JSON.parse(blockedVal));
+        } catch {
+          setBlockedUsers(["spammer_bot", "troll_creator"]);
+        }
+      } else {
+        setBlockedUsers(["spammer_bot", "troll_creator"]);
+      }
+    }
+  }, [currentUser]);
 
   const handleEditSave = async () => {
     setEditError(""); setEditSaving(true);
@@ -215,8 +242,11 @@ export default function CreatorProfile() {
             <span className="material-symbols-outlined text-[18px]">logout</span>
             Log out
           </button>
-          <button className="w-10 py-2 rounded-lg bg-surface-container border border-black/10 flex items-center justify-center active:scale-[0.97] transition-all hover:bg-surface-container-high">
-            <span className="material-symbols-outlined text-on-surface text-[20px]">person_add</span>
+          <button onClick={() => setShowSettingsModal(true)}
+            className="w-10 py-2 rounded-lg bg-surface-container border border-black/10 flex items-center justify-center active:scale-[0.97] transition-all hover:bg-surface-container-high"
+            title="Settings"
+          >
+            <span className="material-symbols-outlined text-on-surface text-[20px]">settings</span>
           </button>
         </div>
       </section>
@@ -346,6 +376,149 @@ export default function CreatorProfile() {
             }
           }}
         />
+      )}
+
+      {/* ===== SETTINGS MODAL ===== */}
+      {showSettingsModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-[100] animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-surface-container-lowest rounded-2xl border border-white/40 shadow-2xl overflow-hidden text-on-surface">
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-black/5">
+              <div className="w-12" />
+              <h3 className="font-bold text-base">Settings</h3>
+              <button 
+                onClick={() => setShowSettingsModal(false)} 
+                className="text-sm font-bold text-primary hover:text-primary/80"
+              >
+                Close
+              </button>
+            </div>
+
+            {/* Content List */}
+            <div className="p-5 space-y-5 max-h-[70vh] overflow-y-auto no-scrollbar">
+              
+              {/* Theme Settings */}
+              <div className="flex justify-between items-center py-2 border-b border-black/5">
+                <div>
+                  <p className="text-sm font-bold">App Theme</p>
+                  <p className="text-xs text-on-surface-variant">Switch between dark and light themes</p>
+                </div>
+                <button
+                  onClick={toggleTheme}
+                  className="px-4 py-1.5 rounded-full text-xs font-bold bg-primary text-white transition-all active:scale-95 flex items-center gap-1.5"
+                >
+                  <span className="material-symbols-outlined text-[16px]">{theme === "dark" ? "light_mode" : "dark_mode"}</span>
+                  {theme === "dark" ? "Light Mode" : "Dark Mode"}
+                </button>
+              </div>
+
+              {/* Account Privacy Toggle */}
+              <div className="flex justify-between items-center py-2 border-b border-black/5">
+                <div>
+                  <p className="text-sm font-bold">Account Privacy</p>
+                  <p className="text-xs text-on-surface-variant">Control who sees your posts and stories</p>
+                </div>
+                <button
+                  onClick={() => {
+                    const nextPrivate = !isPrivateAccount;
+                    setIsPrivateAccount(nextPrivate);
+                    if (currentUser) {
+                      localStorage.setItem(`loop_user_private_${currentUser.id}`, String(nextPrivate));
+                    }
+                  }}
+                  className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all active:scale-95 ${
+                    isPrivateAccount 
+                      ? "bg-primary text-white" 
+                      : "bg-surface-container border border-black/10 text-on-surface"
+                  }`}
+                >
+                  {isPrivateAccount ? "Private" : "Public"}
+                </button>
+              </div>
+
+              {/* Account Block Management */}
+              <div className="py-2 border-b border-black/5 space-y-2">
+                <div>
+                  <p className="text-sm font-bold">Blocked Accounts</p>
+                  <p className="text-xs text-on-surface-variant">Manage who you have blocked</p>
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newBlockInput}
+                    onChange={(e) => setNewBlockInput(e.target.value.toLowerCase().replace(/[^a-z0-9._]/g, ""))}
+                    placeholder="username to block..."
+                    className="flex-1 bg-surface-container border border-black/10 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-primary text-on-surface"
+                  />
+                  <button
+                    onClick={() => {
+                      if (!newBlockInput) return;
+                      if (blockedUsers.includes(newBlockInput)) {
+                        alert("User is already blocked.");
+                        return;
+                      }
+                      const updated = [...blockedUsers, newBlockInput];
+                      setBlockedUsers(updated);
+                      if (currentUser) {
+                        localStorage.setItem(`loop_blocked_users_${currentUser.id}`, JSON.stringify(updated));
+                      }
+                      setNewBlockInput("");
+                    }}
+                    className="px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-600 rounded-lg text-xs font-bold transition-all"
+                  >
+                    Block
+                  </button>
+                </div>
+                {blockedUsers.length > 0 ? (
+                  <div className="flex gap-1.5 flex-wrap pt-1">
+                    {blockedUsers.map((username) => (
+                      <div key={username} className="flex items-center gap-1 bg-surface-container px-2.5 py-1 rounded-full text-xs text-on-surface border border-black/5">
+                        <span>@{username}</span>
+                        <button
+                          onClick={() => {
+                            const updated = blockedUsers.filter((u) => u !== username);
+                            setBlockedUsers(updated);
+                            if (currentUser) {
+                              localStorage.setItem(`loop_blocked_users_${currentUser.id}`, JSON.stringify(updated));
+                            }
+                          }}
+                          className="text-red-500 hover:text-red-700 font-bold ml-1"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-on-surface-variant italic">No blocked accounts.</p>
+                )}
+              </div>
+
+              {/* About Section */}
+              <div className="py-2 border-b border-black/5">
+                <p className="text-sm font-bold">About Loop</p>
+                <div className="mt-2 text-xs text-on-surface-variant space-y-1">
+                  <p><strong>Version:</strong> 1.5.0-Stable</p>
+                  <p><strong>Platform:</strong> AI-Powered Social Media Web App</p>
+                  <p>Designed for premium creators, digital artists, and multi-user interactions.</p>
+                </div>
+              </div>
+
+              {/* Help & Support Section */}
+              <div className="py-2">
+                <p className="text-sm font-bold">Help & Support</p>
+                <div className="mt-2">
+                  <div className="p-3 bg-surface-container rounded-lg border border-black/5 text-xs text-on-surface-variant space-y-1">
+                    <p className="font-bold text-on-surface">Need assistance?</p>
+                    <p>Email: <a href="mailto:support@loopsocial.ai" className="text-primary font-semibold hover:underline">support@loopsocial.ai</a></p>
+                    <p>FAQ: Toggle your theme, post high-definition reels, customize captions using AI commands, or privatize your account dynamically.</p>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
