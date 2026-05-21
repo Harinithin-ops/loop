@@ -126,18 +126,24 @@ export interface LocalMessage {
   isRead: boolean;
 }
 
+// Real UUIDs for all demo profiles - sim-user-* strings caused Postgres UUID type errors (HTTP 400)
 export const DEMO_PROFILES = [
   { id: "c4d21906-938b-4fe1-a5aa-86c86c318611", username: "hari__nithin", full_name: "nithin07", avatar_url: "/images/avatar_marcus_1779191788520.png", bio: "Tech enthusiast & creator", gmail: "harinithin007@gmail.com" },
   { id: "bb856f24-28e9-4ddd-b5ad-5155ac1cc34d", username: "kani_06", full_name: "kanishka", avatar_url: "/images/avatar_sarah_1779191804823.png", bio: "Social loop connector", gmail: "kanishkaaaj2006@gmail.com" },
-  { id: "sim-user-1", username: "luna_dream", full_name: "Luna Dream", avatar_url: "/images/avatar_elena_1779191722727.png", bio: "Cyberpunk visual artist", gmail: "luna@loop.ai" },
-  { id: "sim-user-2", username: "elena_rostova", full_name: "Elena Rostova", avatar_url: "/images/avatar_elena_1779191722727.png", bio: "AI Developer & Writer", gmail: "elena@loop.ai" },
-  { id: "sim-user-3", username: "marcus_v", full_name: "Marcus Vance", avatar_url: "/images/avatar_marcus_1779191788520.png", bio: "Gadget reviewer & developer", gmail: "marcus@loop.ai" },
-  { id: "sim-user-4", username: "alex_design", full_name: "Alex Rivera", avatar_url: "/images/avatar_sarah_1779191804823.png", bio: "Lead UX Designer & Photographer", gmail: "alex@loop.ai" },
-  { id: "sim-user-5", username: "sophia_code", full_name: "Sophia Chen", avatar_url: "/images/avatar_elena_1779191722727.png", bio: "Full Stack Engineer & Dog Lover", gmail: "sophia@loop.ai" },
-  { id: "sim-user-6", username: "lucas_sound", full_name: "Lucas Martinez", avatar_url: "/images/avatar_marcus_1779191788520.png", bio: "Music Producer & Sound Designer", gmail: "lucas@loop.ai" },
-  { id: "sim-user-7", username: "emma_travels", full_name: "Emma Watson", avatar_url: "/images/avatar_sarah_1779191804823.png", bio: "Digital Nomad & Travel Blogger", gmail: "emma@loop.ai" },
-  { id: "sim-user-8", username: "david_fit", full_name: "David Miller", avatar_url: "/images/avatar_marcus_1779191788520.png", bio: "Personal Trainer & Nutritionist", gmail: "david@loop.ai" }
+  { id: "a1b2c3d4-e5f6-7890-abcd-ef1234567801", username: "luna_dream", full_name: "Luna Dream", avatar_url: "/images/avatar_elena_1779191722727.png", bio: "Cyberpunk visual artist", gmail: "luna@loop.ai" },
+  { id: "a1b2c3d4-e5f6-7890-abcd-ef1234567802", username: "elena_rostova", full_name: "Elena Rostova", avatar_url: "/images/avatar_elena_1779191722727.png", bio: "AI Developer & Writer", gmail: "elena@loop.ai" },
+  { id: "a1b2c3d4-e5f6-7890-abcd-ef1234567803", username: "marcus_v", full_name: "Marcus Vance", avatar_url: "/images/avatar_marcus_1779191788520.png", bio: "Gadget reviewer & developer", gmail: "marcus@loop.ai" },
+  { id: "a1b2c3d4-e5f6-7890-abcd-ef1234567804", username: "alex_design", full_name: "Alex Rivera", avatar_url: "/images/avatar_sarah_1779191804823.png", bio: "Lead UX Designer & Photographer", gmail: "alex@loop.ai" },
+  { id: "a1b2c3d4-e5f6-7890-abcd-ef1234567805", username: "sophia_code", full_name: "Sophia Chen", avatar_url: "/images/avatar_elena_1779191722727.png", bio: "Full Stack Engineer & Dog Lover", gmail: "sophia@loop.ai" },
+  { id: "a1b2c3d4-e5f6-7890-abcd-ef1234567806", username: "lucas_sound", full_name: "Lucas Martinez", avatar_url: "/images/avatar_marcus_1779191788520.png", bio: "Music Producer & Sound Designer", gmail: "lucas@loop.ai" },
+  { id: "a1b2c3d4-e5f6-7890-abcd-ef1234567807", username: "emma_travels", full_name: "Emma Watson", avatar_url: "/images/avatar_sarah_1779191804823.png", bio: "Digital Nomad & Travel Blogger", gmail: "emma@loop.ai" },
+  { id: "a1b2c3d4-e5f6-7890-abcd-ef1234567808", username: "david_fit", full_name: "David Miller", avatar_url: "/images/avatar_marcus_1779191788520.png", bio: "Personal Trainer & Nutritionist", gmail: "david@loop.ai" }
 ];
+
+// UUID validation helper — prevents Postgres "invalid input syntax for type uuid" (HTTP 400) errors
+// when sim/demo IDs are used in Supabase queries on UUID-typed columns
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+export const isValidUUID = (id: string): boolean => UUID_REGEX.test(id);
 
 // ===================== LOCAL STORAGE (SAME-DEVICE OPTIMISTIC CACHE ONLY) =====================
 // IMPORTANT: localStorage is ONLY for same-device optimistic UI updates.
@@ -191,16 +197,20 @@ const getProfile = async (userId: string) => {
     return profileCache.get(userId)!;
   }
 
+  // Skip Supabase query entirely for non-UUID IDs to prevent HTTP 400
+  // (Postgres rejects non-UUID strings in UUID-typed columns)
   let dbProfile = null;
-  try {
-    const { data } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", userId)
-      .single();
-    dbProfile = data;
-  } catch (e) {
-    console.warn("Could not query profile from Supabase:", e);
+  if (isValidUUID(userId)) {
+    try {
+      const { data } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", userId)
+        .single();
+      dbProfile = data;
+    } catch (e) {
+      console.warn("Could not query profile from Supabase:", e);
+    }
   }
 
   const result = (() => {
@@ -464,16 +474,14 @@ export const dbService = {
     const followingCount = await this.getFollowingCount(profileData.id);
 
     let postCount = 0;
-    try {
-      const { count } = await supabase
-        .from("posts")
-        .select("*", { count: "exact", head: true })
-        .eq("authorId", profileData.id);
-      postCount = count || 0;
-    } catch {}
-
-    if (postCount === 0 && profileData.id.startsWith("sim-")) {
-      postCount = profileData.id === "sim-user-1" ? 12 : (profileData.id === "sim-user-2" ? 8 : 5);
+    if (isValidUUID(profileData.id)) {
+      try {
+        const { count } = await supabase
+          .from("posts")
+          .select("*", { count: "exact", head: true })
+          .eq("authorId", profileData.id);
+        postCount = count || 0;
+      } catch {}
     }
 
     return {
@@ -492,15 +500,17 @@ export const dbService = {
 
   async getProfileById(userId: string): Promise<UserProfile | null> {
     let profileData = null;
-    try {
-      const { data } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", userId)
-        .single();
-      profileData = data;
-    } catch (e) {
-      console.warn("Could not query profile by ID from Supabase:", e);
+    if (isValidUUID(userId)) {
+      try {
+        const { data } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", userId)
+          .single();
+        profileData = data;
+      } catch (e) {
+        console.warn("Could not query profile by ID from Supabase:", e);
+      }
     }
 
     if (!profileData) {
@@ -524,16 +534,14 @@ export const dbService = {
     const followingCount = await this.getFollowingCount(profileData.id);
 
     let postCount = 0;
-    try {
-      const { count } = await supabase
-        .from("posts")
-        .select("*", { count: "exact", head: true })
-        .eq("authorId", profileData.id);
-      postCount = count || 0;
-    } catch {}
-
-    if (postCount === 0 && profileData.id.startsWith("sim-")) {
-      postCount = profileData.id === "sim-user-1" ? 12 : (profileData.id === "sim-user-2" ? 8 : 5);
+    if (isValidUUID(profileData.id)) {
+      try {
+        const { count } = await supabase
+          .from("posts")
+          .select("*", { count: "exact", head: true })
+          .eq("authorId", profileData.id);
+        postCount = count || 0;
+      } catch {}
     }
 
     return {
@@ -1406,6 +1414,11 @@ export const dbService = {
   // =================== FOLLOWER COUNTS ===================
 
   async getFollowerCount(userId: string): Promise<number> {
+    // Skip Supabase query for non-UUID IDs to prevent HTTP 400
+    if (!isValidUUID(userId)) {
+      const localReqs = getLocalFollowRequests();
+      return localReqs.filter(r => r.receiverId === userId && r.status === "accepted").length;
+    }
     let count = 0;
     try {
       const { count: dbCount } = await supabase
@@ -1425,6 +1438,11 @@ export const dbService = {
   },
 
   async getFollowingCount(userId: string): Promise<number> {
+    // Skip Supabase query for non-UUID IDs to prevent HTTP 400
+    if (!isValidUUID(userId)) {
+      const localReqs = getLocalFollowRequests();
+      return localReqs.filter(r => r.senderId === userId && r.status === "accepted").length;
+    }
     let count = 0;
     try {
       const { count: dbCount } = await supabase
@@ -1449,59 +1467,60 @@ export const dbService = {
     let updatedLocal = [...localReqs];
     let dirty = false;
 
-    try {
-      const { data: sent } = await supabase
-        .from("follow_requests")
-        .select("id, receiverId, createdAt")
-        .eq("senderId", userId)
-        .eq("status", "accepted");
+    // Only query Supabase if userId is a valid UUID
+    if (isValidUUID(userId)) {
+      try {
+        const { data: sent } = await supabase
+          .from("follow_requests")
+          .select("id, receiverId, createdAt")
+          .eq("senderId", userId)
+          .eq("status", "accepted");
 
-      const { data: received } = await supabase
-        .from("follow_requests")
-        .select("id, senderId, createdAt")
-        .eq("receiverId", userId)
-        .eq("status", "accepted");
+        const { data: received } = await supabase
+          .from("follow_requests")
+          .select("id, senderId, createdAt")
+          .eq("receiverId", userId)
+          .eq("status", "accepted");
 
-      if (sent) {
-        sent.forEach((r: any) => {
-          ids.add(r.receiverId);
-          // Sync to local storage
-          const existing = updatedLocal.find(l => l.senderId === userId && l.receiverId === r.receiverId);
-          if (!existing || existing.status !== "accepted") {
-            updatedLocal = updatedLocal.filter(l => !(l.senderId === userId && l.receiverId === r.receiverId));
-            updatedLocal.push({
-              id: r.id || "req-" + Math.random().toString(36).substring(2, 9),
-              senderId: userId,
-              receiverId: r.receiverId,
-              status: "accepted",
-              createdAt: r.createdAt || new Date().toISOString()
-            });
-            dirty = true;
-          }
-        });
+        if (sent) {
+          sent.forEach((r: any) => {
+            ids.add(r.receiverId);
+            const existing = updatedLocal.find(l => l.senderId === userId && l.receiverId === r.receiverId);
+            if (!existing || existing.status !== "accepted") {
+              updatedLocal = updatedLocal.filter(l => !(l.senderId === userId && l.receiverId === r.receiverId));
+              updatedLocal.push({
+                id: r.id || "req-" + Math.random().toString(36).substring(2, 9),
+                senderId: userId,
+                receiverId: r.receiverId,
+                status: "accepted",
+                createdAt: r.createdAt || new Date().toISOString()
+              });
+              dirty = true;
+            }
+          });
+        }
+
+        if (received) {
+          received.forEach((r: any) => {
+            ids.add(r.senderId);
+            const existing = updatedLocal.find(l => l.senderId === r.senderId && l.receiverId === userId);
+            if (!existing || existing.status !== "accepted") {
+              updatedLocal = updatedLocal.filter(l => !(l.senderId === r.senderId && l.receiverId === userId));
+              updatedLocal.push({
+                id: r.id || "req-" + Math.random().toString(36).substring(2, 9),
+                senderId: r.senderId,
+                receiverId: userId,
+                status: "accepted",
+                createdAt: r.createdAt || new Date().toISOString()
+              });
+              dirty = true;
+            }
+          });
+        }
+      } catch (e) {
+        console.warn("Supabase getConnectedUserIds failed:", e);
       }
-
-      if (received) {
-        received.forEach((r: any) => {
-          ids.add(r.senderId);
-          // Sync to local storage
-          const existing = updatedLocal.find(l => l.senderId === r.senderId && l.receiverId === userId);
-          if (!existing || existing.status !== "accepted") {
-            updatedLocal = updatedLocal.filter(l => !(l.senderId === r.senderId && l.receiverId === userId));
-            updatedLocal.push({
-              id: r.id || "req-" + Math.random().toString(36).substring(2, 9),
-              senderId: r.senderId,
-              receiverId: userId,
-              status: "accepted",
-              createdAt: r.createdAt || new Date().toISOString()
-            });
-            dirty = true;
-          }
-        });
-      }
-    } catch (e) {
-      console.warn("Supabase getConnectedUserIds failed:", e);
-    }
+    } // end isValidUUID guard
 
     if (dirty) {
       saveLocalFollowRequests(updatedLocal);
