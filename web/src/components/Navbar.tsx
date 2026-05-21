@@ -215,11 +215,14 @@ export default function Navbar({ children }: { children: React.ReactNode }) {
 
       if (createType === "post") {
         const tags = caption.match(/#[a-zA-Z0-9]+/g) || ["#LoopAI", "#Social"];
-        await dbService.createPost(caption, mediaUrl, tone, tags);
+        const res = await dbService.createPost(caption, mediaUrl, tone, tags);
+        if (!res) throw new Error("Failed to create post in the database. Please try again.");
       } else if (createType === "story") {
-        await dbService.addStory(mediaUrl);
+        const res = await dbService.addStory(mediaUrl);
+        if (!res) throw new Error("Failed to create story in the database. Please try again.");
       } else if (createType === "reel") {
-        await dbService.addReel(mediaUrl, caption);
+        const res = await dbService.addReel(mediaUrl, caption);
+        if (!res) throw new Error("Failed to create reel in the database. Please try again.");
       }
 
       resetCreateModal(); setIsCreateOpen(false);

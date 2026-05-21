@@ -1,5 +1,16 @@
 import { supabase } from "./supabase";
 
+function generateUUID(): string {
+  if (typeof window !== "undefined" && window.crypto && window.crypto.randomUUID) {
+    return window.crypto.randomUUID();
+  }
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
 // ===================== TYPES =====================
 
 export interface RealUser {
@@ -623,7 +634,7 @@ export const dbService = {
 
     const { data, error } = await supabase
       .from("posts")
-      .insert({ caption, imageUrl, tone, aiTags, authorId: user.id })
+      .insert({ id: generateUUID(), caption, imageUrl, tone, aiTags, authorId: user.id })
       .select()
       .single();
 
@@ -742,7 +753,7 @@ export const dbService = {
     const expiresAt = new Date(Date.now() + 86400000).toISOString();
     const { data, error } = await supabase
       .from("stories")
-      .insert({ mediaUrl, userId: user.id, expiresAt })
+      .insert({ id: generateUUID(), mediaUrl, userId: user.id, expiresAt })
       .select()
       .single();
 
@@ -842,7 +853,7 @@ export const dbService = {
 
     const { data, error } = await supabase
       .from("reels")
-      .insert({ videoUrl, caption, userId: user.id })
+      .insert({ id: generateUUID(), videoUrl, caption, userId: user.id })
       .select()
       .single();
 
