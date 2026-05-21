@@ -160,10 +160,12 @@ export default function Navbar({ children }: { children: React.ReactNode }) {
   }, [showNotifications, fetchNotifications]);
 
   const handleSignOut = async () => {
-    try { await supabase.auth.signOut(); } catch {}
     sessionStorage.removeItem("loop_mock_session");
     localStorage.removeItem("loop_mock_session");
     window.dispatchEvent(new Event("loop_auth_changed"));
+    try {
+      supabase.auth.signOut().catch(() => {});
+    } catch {}
     window.location.href = "/login";
   };
 
