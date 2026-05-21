@@ -1472,16 +1472,23 @@ export const dbService = {
       profiles.map(async (profile: any) => {
         let dbMessages: any[] = [];
         try {
-          const { data } = await supabase
-            .from("messages")
-            .select("*")
-            .or(
-              `and(sender_id.eq.${user.id},receiver_id.eq.${profile.id}),and(sender_id.eq.${profile.id},receiver_id.eq.${user.id})`
-            )
-            .order("created_at", { ascending: true });
-          if (data) dbMessages = data;
+          const res = await fetch("/api/messages", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              action: "get",
+              userId: user.id,
+              otherId: profile.id
+            })
+          });
+          if (res.ok) {
+            const resultData = await res.json();
+            if (resultData.messages) dbMessages = resultData.messages;
+          } else {
+            console.warn("fetch messages API returned error:", res.status);
+          }
         } catch (e) {
-          console.warn("Supabase fetch messages failed:", e);
+          console.warn("fetch messages API failed:", e);
         }
 
         const localMsgs = getLocalMessages().filter(m => 
@@ -1627,22 +1634,24 @@ export const dbService = {
     // PRIORITY 1: Write to Supabase first so the other user (on any device) can see it immediately
     let savedId: string | null = null;
     try {
-      const { data, error } = await supabase
-        .from("messages")
-        .insert({
-          content: text,
-          sender_id: user.id,
-          receiver_id: receiverId,
-          is_read: false,
-          created_at: timestamp,
+      const res = await fetch("/api/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "send",
+          senderId: user.id,
+          receiverId: receiverId,
+          content: text
         })
-        .select("id")
-        .single();
-
-      if (!error && data?.id) {
-        savedId = data.id;
-      } else if (error) {
-        console.warn("Supabase sendMessage failed:", error.message);
+      });
+      if (res.ok) {
+        const resultData = await res.json();
+        if (resultData.data?.id) {
+          savedId = resultData.data.id;
+        }
+      } else {
+        const errText = await res.text();
+        console.warn("fetch send message API returned error:", res.status, errText);
       }
     } catch (e) {
       console.warn("Supabase sendMessage exception:", e);
@@ -1687,45 +1696,11 @@ export const dbService = {
       return m;
     });
     saveLocalMessages(updated);
-
-    try {
-      await supabase
-        .from("messages")
-        .update({ is_read: true })
-        .eq("sender_id", chatUserId)
-        .eq("receiver_id", user.id)
-        .eq("is_read", false);
-    } catch (e) {
-      console.warn("Supabase markMessagesAsRead failed:", e);
-    }
   },
 
   async getTotalUnreadCount(): Promise<number> {
     const user = await this.getActiveUser();
     if (!user) return 0;
-
-    // Primary source: Supabase (cross-device, real-time accurate)
-    // Try both snake_case (receiver_id) and camelCase (receiverId) for compatibility
-    try {
-      const { count } = await supabase
-        .from("messages")
-        .select("*", { count: "exact", head: true })
-        .eq("receiver_id", user.id)
-        .eq("is_read", false);
-      if (count !== null) return count;
-    } catch (e) {
-      console.warn("Supabase getTotalUnreadCount (snake_case) failed, trying camelCase:", e);
-    }
-    try {
-      const { count } = await supabase
-        .from("messages")
-        .select("*", { count: "exact", head: true })
-        .eq("receiverId", user.id)
-        .eq("isRead", false);
-      if (count !== null) return count;
-    } catch {
-      console.warn("Supabase getTotalUnreadCount (camelCase) failed, falling back to localStorage.");
-    }
 
     // Fallback: local messages (only visible on same device)
     const localMsgs = getLocalMessages();
