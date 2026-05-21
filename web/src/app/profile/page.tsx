@@ -4,10 +4,19 @@ import React, { useState, useEffect, useRef } from "react";
 import { dbService, RealPost, RealReel, RealUser, FollowRequest, uploadFileToStorage } from "@/app/utils/dbService";
 import Link from "next/link";
 import PostDetailModal from "@/components/PostDetailModal";
+import { supabase } from "@/app/utils/supabase";
 
 export default function CreatorProfile() {
   const [currentUser, setCurrentUser] = useState<RealUser | null>(null);
   const [activeTab, setActiveTab] = useState<"posts" | "reels" | "saved">("posts");
+
+  const handleSignOut = async () => {
+    try { await supabase.auth.signOut(); } catch {}
+    sessionStorage.removeItem("loop_mock_session");
+    localStorage.removeItem("loop_mock_session");
+    window.dispatchEvent(new Event("loop_auth_changed"));
+    window.location.href = "/";
+  };
   const [followerCount, setFollowerCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -184,8 +193,10 @@ export default function CreatorProfile() {
             className="flex-1 py-2 rounded-lg bg-surface-container border border-black/10 font-bold text-sm text-on-surface active:scale-[0.97] transition-all hover:bg-surface-container-high">
             Edit profile
           </button>
-          <button className="flex-1 py-2 rounded-lg bg-surface-container border border-black/10 font-bold text-sm text-on-surface active:scale-[0.97] transition-all hover:bg-surface-container-high">
-            View archive
+          <button onClick={handleSignOut}
+            className="flex-1 py-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 font-bold text-sm text-red-600 active:scale-[0.97] transition-all flex items-center justify-center gap-1.5">
+            <span className="material-symbols-outlined text-[18px]">logout</span>
+            Log out
           </button>
           <button className="w-10 py-2 rounded-lg bg-surface-container border border-black/10 flex items-center justify-center active:scale-[0.97] transition-all hover:bg-surface-container-high">
             <span className="material-symbols-outlined text-on-surface text-[20px]">person_add</span>
