@@ -90,9 +90,24 @@ export default function CreatorProfile() {
         const res = await dbService.updateUsername(editUsername);
         if (!res.success) { setEditError(res.error || "Username error"); setEditSaving(false); return; }
       }
-      await dbService.updateProfile({ full_name: editName, bio: editBio, avatar_url: editAvatar, gmail: editGmail });
+      const success = await dbService.updateProfile({ full_name: editName, bio: editBio, avatar_url: editAvatar, gmail: editGmail });
+      if (!success) { setEditError("Failed to save profile. Check Supabase RLS policies."); setEditSaving(false); return; }
+
+      // Immediately reflect the new values in the UI without waiting for a full reload
+      setCurrentUser((prev) => prev ? {
+        ...prev,
+        fullName: editName,
+        username: editUsername,
+        bio: editBio,
+        avatar: editAvatar,
+        gmail: editGmail,
+      } : prev);
+
       setShowEditModal(false);
-      await loadProfileData();
+      // Trigger a background reload to sync any server-side changes
+      loadProfileData();
+      // Notify Navbar to refresh the user avatar
+      window.dispatchEvent(new Event("loop_auth_changed"));
     } catch { setEditError("Failed to save"); } finally { setEditSaving(false); }
   };
 

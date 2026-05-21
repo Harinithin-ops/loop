@@ -472,7 +472,15 @@ export const dbService = {
       .update(updates)
       .eq("id", user.id);
 
-    return !error;
+    if (error) {
+      console.error("Supabase updateProfile error:", error);
+      return false;
+    }
+
+    // Bust the in-memory cache so the next getActiveUser() fetches fresh data
+    // (including the new avatar_url) instead of returning the stale cached profile
+    profileCache.delete(user.id);
+    return true;
   },
 
   // =================== SEARCH ===================
