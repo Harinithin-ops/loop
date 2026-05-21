@@ -42,18 +42,30 @@ async function startServer() {
 
   await server.start();
 
-  app.use(cors());
-  app.use(express.json());
+  app.use(cors({
+    origin: true, // Allow all origins for multi-user deployment (restrict in production as needed)
+    credentials: true,
+    methods: ["GET", "POST", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  }));
+  app.use(express.json({ limit: "10mb" }));
   
   // Register Apollo Server middleware for Express 5
-  app.use('/graphql', expressMiddleware(server));
+  app.use('/graphql', expressMiddleware(server, {
+    context: async ({ req }) => ({
+      // Pass auth headers into context so resolvers can identify users
+      authToken: req.headers.authorization || null,
+    }),
+  }));
 
   // Use a different port if 4000 is taken, but stick to 4000 as default
-  const PORT = process.env.PORT || 4000;
+  const PORT = parseInt(process.env.PORT || "4000", 10);
+  const HOST = process.env.HOST || "0.0.0.0"; // Bind to all interfaces for multi-user deployment
   
-  httpServer.listen(PORT, () => {
-    console.log(`🚀 Loop AI Server ready at http://localhost:${PORT}/graphql`);
-    console.log(`🚀 Subscriptions ready at ws://localhost:${PORT}/graphql`);
+  httpServer.listen(PORT, HOST, () => {
+    console.log(`🚀 Loop AI Server ready at http://${HOST}:${PORT}/graphql`);
+    console.log(`🚀 Subscriptions ready at ws://${HOST}:${PORT}/graphql`);
+    console.log(`📡 Accepting connections from all network interfaces`);
   });
 }
 

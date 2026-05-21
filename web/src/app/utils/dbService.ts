@@ -139,11 +139,16 @@ export const DEMO_PROFILES = [
   { id: "sim-user-8", username: "david_fit", full_name: "David Miller", avatar_url: "/images/avatar_marcus_1779191788520.png", bio: "Personal Trainer & Nutritionist", gmail: "david@loop.ai" }
 ];
 
+// ===================== LOCAL STORAGE (SAME-DEVICE OPTIMISTIC CACHE ONLY) =====================
+// IMPORTANT: localStorage is ONLY for same-device optimistic UI updates.
+// It is NOT the source of truth for any data - Supabase is.
+// When multiple users on different devices interact, only Supabase data is shared.
+
 export const getLocalFollowRequests = (): LocalFollowRequest[] => {
   if (typeof window === "undefined") return [];
   try {
-    const raw = localStorage.getItem("loop_local_follow_requests") ||
-                sessionStorage.getItem("loop_local_follow_requests");
+    const raw = sessionStorage.getItem("loop_local_follow_requests") ||
+                localStorage.getItem("loop_local_follow_requests");
     return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
@@ -162,8 +167,8 @@ export const saveLocalFollowRequests = (requests: LocalFollowRequest[]) => {
 export const getLocalMessages = (): LocalMessage[] => {
   if (typeof window === "undefined") return [];
   try {
-    const raw = localStorage.getItem("loop_local_messages") ||
-                sessionStorage.getItem("loop_local_messages");
+    const raw = sessionStorage.getItem("loop_local_messages") ||
+                localStorage.getItem("loop_local_messages");
     return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
@@ -336,6 +341,7 @@ export const dbService = {
   },
 
   async getActiveUser(): Promise<RealUser | null> {
+    // PRIORITY 1: Real Supabase auth session (works across all devices & tabs)
     try {
       const {
         data: { session },
@@ -360,13 +366,24 @@ export const dbService = {
       console.warn("Auth session check failed:", e);
     }
 
+    // PRIORITY 2: Demo/bypass mock session (same-device only, stored in sessionStorage/localStorage)
+    // This is only for demo purposes and does NOT work across different devices/browsers.
+    // For real multi-user deployment, users should sign in with Supabase auth.
     if (typeof window !== "undefined") {
       try {
+        // sessionStorage is preferred (tab-scoped), localStorage is device-scoped
         const mockRaw = sessionStorage.getItem("loop_mock_session") || localStorage.getItem("loop_mock_session");
         if (mockRaw) {
           const mockUser = JSON.parse(mockRaw);
+          // Validate mock session has required fields
+          if (!mockUser?.id || !mockUser?.username) {
+            // Clear invalid mock session
+            sessionStorage.removeItem("loop_mock_session");
+            localStorage.removeItem("loop_mock_session");
+            return null;
+          }
           const userObj = {
-            id: mockUser.id || "mock-user-id",
+            id: mockUser.id,
             email: mockUser.email || "tester@loop.ai",
             fullName: mockUser.fullName || "TEST CREATOR",
             username: mockUser.username || mockUser.email?.split("@")[0] || "test_creator",
@@ -1742,8 +1759,33 @@ export const dbService = {
     if (!user) return null;
 
     const timestamp = new Date().toISOString();
-    const msgId = "local-msg-" + Math.random().toString(36).substring(2, 9);
 
+    // PRIORITY 1: Write to Supabase first so the other user (on any device) can see it immediately
+    let savedId: string | null = null;
+    try {
+      const { data, error } = await supabase
+        .from("messages")
+        .insert({
+          content: text,
+          senderId: user.id,
+          receiverId: receiverId,
+          isRead: false,
+          createdAt: timestamp,
+        })
+        .select("id")
+        .single();
+
+      if (!error && data?.id) {
+        savedId = data.id;
+      } else if (error) {
+        console.warn("Supabase sendMessage failed:", error.message);
+      }
+    } catch (e) {
+      console.warn("Supabase sendMessage exception:", e);
+    }
+
+    // PRIORITY 2: Save to localStorage as optimistic UI cache (same-device only)
+    const msgId = savedId || ("local-msg-" + Math.random().toString(36).substring(2, 9));
     const newMsg: LocalMessage = {
       id: msgId,
       senderId: user.id,
@@ -1752,23 +1794,9 @@ export const dbService = {
       createdAt: timestamp,
       isRead: false,
     };
-
-    const localMsgs = getLocalMessages();
+    const localMsgs = getLocalMessages().filter(m => m.id !== msgId); // avoid duplicates if retrying
     localMsgs.push(newMsg);
     saveLocalMessages(localMsgs);
-
-    try {
-      await supabase
-        .from("messages")
-        .insert({
-          content: text,
-          senderId: user.id,
-          receiverId: receiverId,
-          isRead: false,
-        });
-    } catch (e) {
-      console.warn("Supabase sendMessage failed:", e);
-    }
 
     return {
       id: msgId,
@@ -1812,22 +1840,21 @@ export const dbService = {
     const user = await this.getActiveUser();
     if (!user) return 0;
 
-    let dbCount = 0;
+    // Primary source: Supabase (cross-device, real-time accurate)
     try {
       const { count } = await supabase
         .from("messages")
         .select("*", { count: "exact", head: true })
         .eq("receiverId", user.id)
         .eq("isRead", false);
-      dbCount = count || 0;
+      if (count !== null) return count;
     } catch (e) {
-      console.warn("Supabase getTotalUnreadCount failed:", e);
+      console.warn("Supabase getTotalUnreadCount failed, falling back to localStorage:", e);
     }
 
+    // Fallback: local messages (only visible on same device)
     const localMsgs = getLocalMessages();
-    const localCount = localMsgs.filter(m => m.receiverId === user.id && !m.isRead).length;
-
-    return Math.max(dbCount, localCount);
+    return localMsgs.filter(m => m.receiverId === user.id && !m.isRead).length;
   },
 
   // =================== NOTIFICATIONS SYSTEM ===================
