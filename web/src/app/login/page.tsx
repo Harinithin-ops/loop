@@ -29,7 +29,7 @@ export default function LoginPage() {
         if (signInError.message.toLowerCase().includes("invalid login credentials")) {
           setError("Wrong password or email. Please try again.");
         } else if (signInError.message.toLowerCase().includes("rate limit")) {
-          setError("Supabase email rate limit exceeded. Please use the Instant Demo Bypass button below to log in instantly!");
+          setError("Supabase email rate limit exceeded. Please try again later.");
         } else {
           setError(signInError.message);
         }

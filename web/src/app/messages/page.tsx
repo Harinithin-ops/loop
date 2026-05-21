@@ -131,7 +131,8 @@ export default function Messages() {
         username: req.senderUsername,
         avatar: req.senderAvatar,
         messages: [],
-        unreadCount: 0
+        unreadCount: 0,
+        lastMessageTime: new Date().toISOString()
       };
 
       // 3. Insert and select instantly (eliminates database/RLS race conditions)

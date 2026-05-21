@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { supabase } from "@/app/utils/supabase";
-import { dbService, DEMO_PROFILES } from "@/app/utils/dbService";
+import { dbService } from "@/app/utils/dbService";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -15,33 +15,7 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  const handleDemoUserClick = async (demoEmail: string, demoName?: string) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const profile = await dbService.getOrCreateProfileByEmail(demoEmail, demoName);
-      const mockUser = {
-        id: profile.id,
-        email: profile.gmail || profile.email,
-        fullName: profile.fullName,
-        username: profile.username,
-        avatar: profile.avatar,
-        bio: profile.bio || "Demo User Bio",
-      };
-      sessionStorage.setItem("loop_mock_session", JSON.stringify(mockUser));
-      localStorage.setItem("loop_mock_session", JSON.stringify(mockUser));
-      window.dispatchEvent(new Event("loop_auth_changed"));
-      router.push("/");
-    } catch (err: any) {
-      setError(err?.message || "Failed to sign up as demo user");
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  const handleBypassSignup = async () => {
-    await handleDemoUserClick(email || "newuser@loop.ai", fullName || "NEW LOOP CREATOR");
-  };
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,10 +48,9 @@ export default function SignupPage() {
           },
         },
       });
-
       if (signUpError) {
         if (signUpError.message.toLowerCase().includes("rate limit") || signUpError.message.toLowerCase().includes("limit exceeded")) {
-          setError("Supabase email rate limit exceeded. Please click the Instant Demo Bypass button below to sign up instantly!");
+          setError("Supabase email rate limit exceeded. Please wait a few minutes and try again.");
         } else {
           setError(signUpError.message);
         }
@@ -90,7 +63,7 @@ export default function SignupPage() {
         if (data.session) {
           router.push("/");
         } else {
-          setError("Account created successfully! (Supabase confirmation email sent. You can check your email or click the Instant Demo Bypass button below to log in instantly!)");
+          setError("Account created successfully! Please check your email to confirm your account.");
           setLoading(false);
         }
       } else {
@@ -206,48 +179,7 @@ export default function SignupPage() {
             )}
           </button>
 
-          <div className="relative flex py-1 items-center">
-            <div className="flex-grow border-t border-black/5"></div>
-            <span className="flex-shrink mx-3 text-[10px] text-outline-variant font-bold uppercase tracking-wider font-label-caps">Or Bypass Rate Limits</span>
-            <div className="flex-grow border-t border-black/5"></div>
-          </div>
-
-          <button
-            type="button"
-            onClick={handleBypassSignup}
-            className="w-full bg-[#10b981] hover:bg-[#059669] text-white py-3 rounded-xl font-bold text-sm tracking-wide active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/10"
-          >
-            <span className="material-symbols-outlined text-[20px]">bolt</span>
-            Instant Demo Bypass Sign Up
-          </button>
         </form>
-
-        <div className="space-y-4 pt-4 border-t border-black/5">
-          <p className="text-xs font-bold text-center text-on-surface-variant uppercase tracking-wider font-label-caps">
-            Select a Demo Creator to Join Instantly
-          </p>
-          <div className="grid grid-cols-2 gap-2 max-h-[220px] overflow-y-auto pr-1 no-scrollbar">
-            {DEMO_PROFILES.map((demo) => (
-              <button
-                key={demo.id}
-                type="button"
-                onClick={() => handleDemoUserClick(demo.gmail, demo.full_name)}
-                disabled={loading}
-                className="flex items-center gap-2 p-2 rounded-xl border border-black/5 hover:border-primary/30 hover:bg-primary/5 active:scale-95 transition-all text-left bg-surface-container-low/30"
-              >
-                <img
-                  src={demo.avatar_url}
-                  alt={demo.full_name}
-                  className="w-8 h-8 rounded-full object-cover border border-black/10 flex-shrink-0"
-                />
-                <div className="min-w-0">
-                  <p className="text-xs font-bold text-on-surface truncate">{demo.full_name}</p>
-                  <p className="text-[10px] text-primary truncate">@{demo.username}</p>
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
 
         <p className="text-center text-xs text-on-surface-variant">
           Already have an account?{" "}

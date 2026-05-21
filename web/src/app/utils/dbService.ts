@@ -126,19 +126,7 @@ export interface LocalMessage {
   isRead: boolean;
 }
 
-// Real UUIDs for all demo profiles - sim-user-* strings caused Postgres UUID type errors (HTTP 400)
-export const DEMO_PROFILES = [
-  { id: "c4d21906-938b-4fe1-a5aa-86c86c318611", username: "hari__nithin", full_name: "nithin07", avatar_url: "/images/avatar_marcus_1779191788520.png", bio: "Tech enthusiast & creator", gmail: "harinithin007@gmail.com" },
-  { id: "bb856f24-28e9-4ddd-b5ad-5155ac1cc34d", username: "kani_06", full_name: "kanishka", avatar_url: "/images/avatar_sarah_1779191804823.png", bio: "Social loop connector", gmail: "kanishkaaaj2006@gmail.com" },
-  { id: "a1b2c3d4-e5f6-7890-abcd-ef1234567801", username: "luna_dream", full_name: "Luna Dream", avatar_url: "/images/avatar_elena_1779191722727.png", bio: "Cyberpunk visual artist", gmail: "luna@loop.ai" },
-  { id: "a1b2c3d4-e5f6-7890-abcd-ef1234567802", username: "elena_rostova", full_name: "Elena Rostova", avatar_url: "/images/avatar_elena_1779191722727.png", bio: "AI Developer & Writer", gmail: "elena@loop.ai" },
-  { id: "a1b2c3d4-e5f6-7890-abcd-ef1234567803", username: "marcus_v", full_name: "Marcus Vance", avatar_url: "/images/avatar_marcus_1779191788520.png", bio: "Gadget reviewer & developer", gmail: "marcus@loop.ai" },
-  { id: "a1b2c3d4-e5f6-7890-abcd-ef1234567804", username: "alex_design", full_name: "Alex Rivera", avatar_url: "/images/avatar_sarah_1779191804823.png", bio: "Lead UX Designer & Photographer", gmail: "alex@loop.ai" },
-  { id: "a1b2c3d4-e5f6-7890-abcd-ef1234567805", username: "sophia_code", full_name: "Sophia Chen", avatar_url: "/images/avatar_elena_1779191722727.png", bio: "Full Stack Engineer & Dog Lover", gmail: "sophia@loop.ai" },
-  { id: "a1b2c3d4-e5f6-7890-abcd-ef1234567806", username: "lucas_sound", full_name: "Lucas Martinez", avatar_url: "/images/avatar_marcus_1779191788520.png", bio: "Music Producer & Sound Designer", gmail: "lucas@loop.ai" },
-  { id: "a1b2c3d4-e5f6-7890-abcd-ef1234567807", username: "emma_travels", full_name: "Emma Watson", avatar_url: "/images/avatar_sarah_1779191804823.png", bio: "Digital Nomad & Travel Blogger", gmail: "emma@loop.ai" },
-  { id: "a1b2c3d4-e5f6-7890-abcd-ef1234567808", username: "david_fit", full_name: "David Miller", avatar_url: "/images/avatar_marcus_1779191788520.png", bio: "Personal Trainer & Nutritionist", gmail: "david@loop.ai" }
-];
+export const DEMO_PROFILES: any[] = [];
 
 // UUID validation helper — prevents Postgres "invalid input syntax for type uuid" (HTTP 400) errors
 // when sim/demo IDs are used in Supabase queries on UUID-typed columns
@@ -213,28 +201,13 @@ const getProfile = async (userId: string) => {
     }
   }
 
-  const result = (() => {
-    if (!dbProfile) {
-      const demo = DEMO_PROFILES.find(p => p.id === userId);
-      if (demo) {
-        return {
-          name: demo.full_name,
-          username: demo.username,
-          avatar: demo.avatar_url,
-          bio: demo.bio,
-          gmail: demo.gmail,
-        };
-      }
-    }
-
-    return {
-      name: dbProfile?.full_name || dbProfile?.username || "Unknown User",
-      username: dbProfile?.username || "",
-      avatar: dbProfile?.avatar_url || "/images/avatar_marcus_1779191788520.png",
-      bio: dbProfile?.bio || "",
-      gmail: dbProfile?.gmail || "",
-    };
-  })();
+  const result = {
+    name: dbProfile?.full_name || dbProfile?.username || "Unknown User",
+    username: dbProfile?.username || "",
+    avatar: dbProfile?.avatar_url || "/images/avatar_marcus_1779191788520.png",
+    bio: dbProfile?.bio || "",
+    gmail: dbProfile?.gmail || "",
+  };
 
   profileCache.set(userId, result);
   return result;
@@ -285,90 +258,6 @@ export const dbService = {
     }
   },
 
-  async getOrCreateProfileByEmail(email: string, fullName?: string): Promise<RealUser> {
-    const cleanEmail = email.toLowerCase().trim();
-    
-    // Find the username from demo profiles or email split
-    const demo = DEMO_PROFILES.find(p => 
-      p.gmail?.toLowerCase() === cleanEmail || 
-      p.username.toLowerCase() === cleanEmail.split("@")[0]
-    );
-    
-    const username = demo ? demo.username : cleanEmail.split("@")[0];
-    const name = demo ? demo.full_name : (fullName || cleanEmail.split("@")[0].toUpperCase());
-    const avatar = demo ? demo.avatar_url : "/images/avatar_marcus_1779191788520.png";
-    const bio = demo ? demo.bio : "Demo User Bio";
-
-    // FAST PATH: For known demo profiles, skip Supabase auth entirely.
-    // Using their pre-known UUID means:
-    // 1. No auth.signInWithPassword / auth.signUp calls
-    // 2. No HTTP 429 rate limit errors
-    // 3. Instant login
-    if (demo) {
-      const userObj: RealUser = {
-        id: demo.id,
-        email: cleanEmail,
-        fullName: name,
-        username: username,
-        avatar: avatar,
-        bio: bio || "Demo User Bio",
-        gmail: cleanEmail
-      };
-      await this.ensureProfileExists(userObj);
-      return userObj;
-    }
-
-    // FULL PATH: For non-demo users, try real Supabase auth
-    const demoEmail = `demo_${username.replace(/[^a-zA-Z0-9]/g, "_")}@loop.ai`.toLowerCase();
-    const demoPassword = "DemoPassword123!";
-
-    let authUser = null;
-    try {
-      // 1. Try signing in
-      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-        email: demoEmail,
-        password: demoPassword
-      });
-
-      if (signInData?.user) {
-        authUser = signInData.user;
-      } else if (signInError) {
-        // 2. Try signing up if sign in failed (may be rate limited on free tier)
-        const { data: signUpData } = await supabase.auth.signUp({
-          email: demoEmail,
-          password: demoPassword,
-          options: {
-            data: {
-              full_name: name
-            }
-          }
-        });
-        
-        if (signUpData?.user) {
-          authUser = signUpData.user;
-        }
-      }
-    } catch (e) {
-      console.warn("Bypass auth helper failed:", e);
-    }
-
-    // Fallback if background auth fails (e.g. rate limit or network issue)
-    const userId = authUser?.id || ("fallback-" + username + "-" + Date.now().toString(36));
-
-    const userObj: RealUser = {
-      id: userId,
-      email: cleanEmail,
-      fullName: name,
-      username: username,
-      avatar: avatar,
-      bio: bio || "Demo User Bio",
-      gmail: cleanEmail
-    };
-
-    await this.ensureProfileExists(userObj);
-    return userObj;
-  },
-
   async getActiveUser(): Promise<RealUser | null> {
     // PRIORITY 1: Real Supabase auth session (works across all devices & tabs)
     try {
@@ -395,39 +284,6 @@ export const dbService = {
       console.warn("Auth session check failed:", e);
     }
 
-    // PRIORITY 2: Demo/bypass mock session (same-device only, stored in sessionStorage/localStorage)
-    // This is only for demo purposes and does NOT work across different devices/browsers.
-    // For real multi-user deployment, users should sign in with Supabase auth.
-    if (typeof window !== "undefined") {
-      try {
-        // sessionStorage is preferred (tab-scoped), localStorage is device-scoped
-        const mockRaw = sessionStorage.getItem("loop_mock_session") || localStorage.getItem("loop_mock_session");
-        if (mockRaw) {
-          const mockUser = JSON.parse(mockRaw);
-          // Validate mock session has required fields
-          if (!mockUser?.id || !mockUser?.username) {
-            // Clear invalid mock session
-            sessionStorage.removeItem("loop_mock_session");
-            localStorage.removeItem("loop_mock_session");
-            return null;
-          }
-          const userObj = {
-            id: mockUser.id,
-            email: mockUser.email || "tester@loop.ai",
-            fullName: mockUser.fullName || "TEST CREATOR",
-            username: mockUser.username || mockUser.email?.split("@")[0] || "test_creator",
-            avatar: mockUser.avatar || "/images/avatar_marcus_1779191788520.png",
-            bio: mockUser.bio || "Demo User Bio",
-            gmail: mockUser.email || "tester@loop.ai",
-          };
-          await this.ensureProfileExists(userObj);
-          return userObj;
-        }
-      } catch (e) {
-        console.warn("Mock session check failed:", e);
-      }
-    }
-
     return null;
   },
 
@@ -442,21 +298,7 @@ export const dbService = {
       console.warn("Supabase getAllProfiles failed:", e);
     }
 
-    const merged = [...list];
-    DEMO_PROFILES.forEach(demo => {
-      if (!merged.some(p => p.id === demo.id)) {
-        merged.push({
-          id: demo.id,
-          username: demo.username,
-          full_name: demo.full_name,
-          avatar_url: demo.avatar_url,
-          bio: demo.bio,
-          gmail: demo.gmail
-        });
-      }
-    });
-
-    return merged;
+    return list;
   },
 
   async getProfileByUsername(username: string): Promise<UserProfile | null> {
@@ -473,20 +315,7 @@ export const dbService = {
     }
 
     if (!profileData) {
-      const demo = DEMO_PROFILES.find(p => p.username === username);
-      if (demo) {
-        profileData = {
-          id: demo.id,
-          gmail: demo.gmail,
-          email: demo.gmail,
-          full_name: demo.full_name,
-          username: demo.username,
-          avatar_url: demo.avatar_url,
-          bio: demo.bio
-        };
-      } else {
-        return null;
-      }
+      return null;
     }
 
     const followerCount = await this.getFollowerCount(profileData.id);
@@ -533,20 +362,7 @@ export const dbService = {
     }
 
     if (!profileData) {
-      const demo = DEMO_PROFILES.find(p => p.id === userId);
-      if (demo) {
-        profileData = {
-          id: demo.id,
-          gmail: demo.gmail,
-          email: demo.gmail,
-          full_name: demo.full_name,
-          username: demo.username,
-          avatar_url: demo.avatar_url,
-          bio: demo.bio
-        };
-      } else {
-        return null;
-      }
+      return null;
     }
 
     const followerCount = await this.getFollowerCount(profileData.id);
