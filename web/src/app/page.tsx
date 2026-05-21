@@ -610,7 +610,30 @@ export default function HomeFeed() {
                 <span className="text-white font-bold text-sm tracking-wide drop-shadow-md">
                   {activeStory.userName}
                 </span>
-                <span className="text-white/60 text-xs drop-shadow-md ml-auto">
+                
+                {currentUser?.id === activeStory.userId && (
+                  <button
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      if (confirm("Are you sure you want to delete this story?")) {
+                        const success = await dbService.deleteStory(activeStory.id);
+                        if (success) {
+                          setStories((prev) => prev.filter((s) => s.id !== activeStory.id));
+                          setActiveStory(null);
+                          alert("Story deleted successfully!");
+                        } else {
+                          alert("Failed to delete story. Please try again.");
+                        }
+                      }
+                    }}
+                    className="w-8 h-8 rounded-full hover:bg-white/10 flex items-center justify-center text-red-500 hover:text-red-400 transition-colors ml-auto z-40"
+                    title="Delete Story"
+                  >
+                    <span className="material-symbols-outlined text-[20px]">delete</span>
+                  </button>
+                )}
+
+                <span className={`text-white/60 text-xs drop-shadow-md ${currentUser?.id === activeStory.userId ? "" : "ml-auto"}`}>
                   Story view
                 </span>
               </div>

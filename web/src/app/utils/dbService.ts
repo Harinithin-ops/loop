@@ -815,6 +815,18 @@ export const dbService = {
     };
   },
 
+  async deleteStory(storyId: string): Promise<boolean> {
+    const { error } = await supabase
+      .from("stories")
+      .delete()
+      .eq("id", storyId);
+    if (error) {
+      console.error("Supabase deleteStory error:", error);
+      return false;
+    }
+    return true;
+  },
+
   // =================== REELS ===================
 
   async getReels(): Promise<RealReel[]> {
