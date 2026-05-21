@@ -588,172 +588,230 @@ export default function Navbar({ children }: { children: React.ReactNode }) {
           })}
         </nav>
 
-        {/* ===== CREATE MODAL (Instagram-style) ===== */}
+        {/* ===== CREATE MODAL (Instagram-style, mobile-first full screen) ===== */}
         {isCreateOpen && (
-          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-[100] animate-in fade-in duration-200">
-            <div className="w-full max-w-lg bg-[#262626] rounded-xl shadow-2xl overflow-hidden">
-              {/* Hidden file input */}
-              <input ref={fileInputRef} type="file" accept="image/*,video/*" className="hidden"
-                onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileSelect(f); }} />
+          <div className="fixed inset-0 z-[100] animate-in fade-in duration-200"
+            style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(4px)" }}>
+            {/* Tap outside to close on desktop */}
+            <div className="absolute inset-0" onClick={() => { resetCreateModal(); setIsCreateOpen(false); }} />
 
-              {/* Header */}
-              <div className="flex items-center justify-between px-4 py-3 border-b border-[#363636]">
+            {/* Hidden file input */}
+            <input ref={fileInputRef} type="file" accept="image/*,video/*" className="hidden"
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileSelect(f); }} />
+
+            {/*
+              Mobile: full-screen sheet from bottom
+              Desktop: centered card, max-w-lg
+            */}
+            <div className="
+              absolute inset-x-0 bottom-0 top-0
+              md:relative md:inset-auto
+              md:max-w-lg md:w-full md:mx-auto md:my-auto md:top-1/2 md:-translate-y-1/2
+              flex flex-col bg-[#262626]
+              md:rounded-xl md:shadow-2xl
+              overflow-hidden
+              max-h-screen md:max-h-[90vh]
+            ">
+              {/* ── STICKY HEADER (always visible, Share never hidden) ── */}
+              <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-b border-[#363636] bg-[#262626]">
                 {createStep === "details" ? (
-                  <button onClick={() => { setCreateStep("upload"); setSelectedFile(null); setPreviewUrl(""); }}
-                    className="text-white hover:text-white/70 transition-colors">
+                  <button
+                    onClick={() => { setCreateStep("upload"); setSelectedFile(null); setPreviewUrl(""); }}
+                    className="w-10 h-10 flex items-center justify-center text-white hover:text-white/70 active:scale-95 transition-all"
+                  >
                     <span className="material-symbols-outlined text-[24px]">arrow_back</span>
                   </button>
-                ) : <div className="w-6" />}
-                <h3 className="text-white font-bold text-base">Create new post</h3>
+                ) : (
+                  <div className="w-10" />
+                )}
+
+                <h3 className="text-white font-bold text-[15px] tracking-tight">
+                  {createStep === "upload" ? "New post" : "Create new post"}
+                </h3>
+
                 {createStep === "details" ? (
-                  <button onClick={handleCreateSubmit as any} disabled={loading}
-                    className="text-primary font-bold text-sm hover:text-primary/80 disabled:opacity-50">
-                    {loading ? "..." : "Share"}
+                  <button
+                    onClick={handleCreateSubmit as any}
+                    disabled={loading}
+                    className="w-10 h-10 flex items-center justify-center text-primary font-bold text-[15px] hover:text-primary/80 disabled:opacity-40 active:scale-95 transition-all"
+                  >
+                    {loading ? <span className="material-symbols-outlined animate-spin text-[20px]">progress_activity</span> : "Share"}
                   </button>
                 ) : (
-                  <button onClick={() => { resetCreateModal(); setIsCreateOpen(false); }}
-                    className="text-white/70 hover:text-white">
+                  <button
+                    onClick={() => { resetCreateModal(); setIsCreateOpen(false); }}
+                    className="w-10 h-10 flex items-center justify-center text-white/70 hover:text-white active:scale-95 transition-all"
+                  >
                     <span className="material-symbols-outlined text-[22px]">close</span>
                   </button>
                 )}
               </div>
 
-              {/* STEP 1: Upload / Drag & Drop */}
-              {createStep === "upload" && (
-                <div ref={dropZoneRef} onDrop={handleDrop} onDragOver={handleDragOver} onDragLeave={handleDragLeave}
-                  className={`flex flex-col items-center justify-center p-8 min-h-[400px] transition-all duration-200 ${
-                    isDragging ? "bg-primary/10 border-2 border-dashed border-primary" : "bg-[#1a1a1a]"
-                  }`}>
-                  {/* Icons */}
-                  <div className="flex items-center gap-1 mb-6">
-                    <span className="material-symbols-outlined text-[48px] text-white/60 -rotate-12">photo_library</span>
-                    <span className="material-symbols-outlined text-[44px] text-white/60 rotate-6">smart_display</span>
-                  </div>
-                  <p className="text-white text-xl font-light mb-4">
-                    {isDragging ? "Drop your file here" : "Drag photos and videos here"}
-                  </p>
-                  <button type="button" onClick={() => fileInputRef.current?.click()}
-                    className="px-6 py-2.5 bg-primary hover:bg-primary/90 text-white font-bold text-sm rounded-lg active:scale-95 transition-all shadow-lg">
-                    Select from computer
-                  </button>
+              {/* ── SCROLLABLE BODY ── */}
+              <div className="flex-1 overflow-y-auto">
 
-                  {/* Divider */}
-                  <div className="flex items-center gap-3 w-full max-w-xs mt-8 mb-4">
-                    <div className="flex-1 h-px bg-[#363636]" />
-                    <span className="text-xs text-white/40 font-semibold">OR PASTE URL</span>
-                    <div className="flex-1 h-px bg-[#363636]" />
-                  </div>
+                {/* STEP 1: Upload */}
+                {createStep === "upload" && (
+                  <div
+                    ref={dropZoneRef}
+                    onDrop={handleDrop} onDragOver={handleDragOver} onDragLeave={handleDragLeave}
+                    className={`flex flex-col items-center justify-center px-6 py-10 min-h-[400px] transition-all duration-200 ${
+                      isDragging ? "bg-primary/10 border-2 border-dashed border-primary" : "bg-[#1a1a1a]"
+                    }`}
+                  >
+                    <div className="flex items-center gap-1 mb-6">
+                      <span className="material-symbols-outlined text-[52px] text-white/50 -rotate-12">photo_library</span>
+                      <span className="material-symbols-outlined text-[46px] text-white/50 rotate-6">smart_display</span>
+                    </div>
+                    <p className="text-white text-lg font-light mb-5 text-center">
+                      {isDragging ? "Drop your file here" : "Drag photos and videos here"}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="px-6 py-2.5 bg-primary hover:bg-primary/90 text-white font-bold text-sm rounded-lg active:scale-95 transition-all shadow-lg"
+                    >
+                      Select from device
+                    </button>
 
-                  {/* URL Input fallback */}
-                  <div className="w-full max-w-xs space-y-2">
-                    <input type="text" value={createType === "reel" ? videoUrl : imageUrl}
-                      onChange={(e) => { if (createType === "reel") { setVideoUrl(e.target.value); } else { setImageUrl(e.target.value); } }}
-                      placeholder="Paste image or video URL..."
-                      className="w-full bg-[#363636] border border-[#464646] rounded-lg py-2.5 px-4 text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-primary" />
-                    {(imageUrl || videoUrl) && (
-                      <button type="button" onClick={() => setCreateStep("details")}
-                        className="w-full py-2 bg-primary/20 text-primary rounded-lg text-xs font-bold hover:bg-primary/30 transition-colors">
-                        Continue with URL →
-                      </button>
-                    )}
-                  </div>
+                    <div className="flex items-center gap-3 w-full max-w-xs mt-8 mb-4">
+                      <div className="flex-1 h-px bg-[#363636]" />
+                      <span className="text-[11px] text-white/40 font-semibold tracking-wider">OR PASTE URL</span>
+                      <div className="flex-1 h-px bg-[#363636]" />
+                    </div>
 
-                  {/* Type selector */}
-                  <div className="flex gap-2 mt-6">
-                    {(["post", "story", "reel"] as const).map((t) => (
-                      <button key={t} type="button" onClick={() => setCreateType(t)}
-                        className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${
-                          createType === t ? "bg-primary text-white" : "bg-[#363636] text-white/60 hover:text-white"
-                        }`}>
-                        {t.toUpperCase()}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
+                    <div className="w-full max-w-xs space-y-2">
+                      <input
+                        type="text"
+                        value={createType === "reel" ? videoUrl : imageUrl}
+                        onChange={(e) => { if (createType === "reel") setVideoUrl(e.target.value); else setImageUrl(e.target.value); }}
+                        placeholder="Paste image or video URL..."
+                        className="w-full bg-[#363636] border border-[#464646] rounded-lg py-2.5 px-4 text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-primary"
+                      />
+                      {(imageUrl || videoUrl) && (
+                        <button
+                          type="button"
+                          onClick={() => setCreateStep("details")}
+                          className="w-full py-2.5 bg-primary/20 text-primary rounded-lg text-xs font-bold hover:bg-primary/30 transition-colors"
+                        >
+                          Continue with URL →
+                        </button>
+                      )}
+                    </div>
 
-              {/* STEP 2: Preview + Details */}
-              {createStep === "details" && (
-                <div className="flex flex-col md:flex-row">
-                  {/* Preview */}
-                  <div className="w-full md:w-1/2 bg-black flex items-center justify-center min-h-[300px] max-h-[400px] overflow-hidden">
-                    {previewUrl ? (
-                      selectedFile?.type.startsWith("video/") ? (
-                        <video src={previewUrl} controls className="w-full h-full object-contain" />
-                      ) : (
-                        <img src={previewUrl} alt="Preview" className="w-full h-full object-contain" />
-                      )
-                    ) : (imageUrl || videoUrl) ? (
-                      <img src={imageUrl || videoUrl} alt="URL Preview" className="w-full h-full object-contain"
-                        onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
-                    ) : (
-                      <div className="text-white/30 text-center">
-                        <span className="material-symbols-outlined text-[48px]">image</span>
-                        <p className="text-sm mt-2">No preview</p>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Details form */}
-                  <div className="w-full md:w-1/2 p-4 space-y-4 bg-[#262626]">
-                    {/* User info */}
-                    {user && (
-                      <div className="flex items-center gap-2 pb-3 border-b border-[#363636]">
-                        <img src={user.avatar} alt="" className="w-8 h-8 rounded-full object-cover" />
-                        <span className="text-white font-bold text-sm">{user.username || user.fullName}</span>
-                      </div>
-                    )}
-
-                    {/* Type selector */}
-                    <div className="flex gap-2">
+                    {/* Type pill selector */}
+                    <div className="flex gap-2 mt-8">
                       {(["post", "story", "reel"] as const).map((t) => (
-                        <button key={t} type="button" onClick={() => setCreateType(t)}
-                          className={`px-3 py-1 rounded-full text-[11px] font-bold transition-all ${
-                            createType === t ? "bg-primary text-white" : "bg-[#363636] text-white/60 hover:text-white"
-                          }`}>
+                        <button
+                          key={t} type="button" onClick={() => setCreateType(t)}
+                          className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${
+                            createType === t ? "bg-primary text-white shadow-md" : "bg-[#363636] text-white/60 hover:text-white"
+                          }`}
+                        >
                           {t.toUpperCase()}
                         </button>
                       ))}
                     </div>
-
-                    {/* Caption */}
-                    {createType !== "story" && (
-                      <textarea value={caption} onChange={(e) => setCaption(e.target.value)}
-                        placeholder="Write a caption..." rows={4}
-                        className="w-full bg-transparent border-none text-white text-sm placeholder:text-white/30 focus:outline-none focus:ring-0 resize-none" />
-                    )}
-
-                    {/* Tone (post only) */}
-                    {createType === "post" && (
-                      <div className="space-y-1">
-                        <label className="text-[11px] text-white/50 font-bold uppercase tracking-wider">Tone</label>
-                        <select value={tone} onChange={(e) => setTone(e.target.value)}
-                          className="w-full bg-[#363636] border border-[#464646] rounded-lg py-2 px-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-primary">
-                          <option value="Cyberpunk">Cyberpunk</option><option value="Minimalist">Minimalist</option>
-                          <option value="Hype Aesthetic">Hype Aesthetic</option><option value="Bio Digital">Bio Digital</option>
-                        </select>
-                      </div>
-                    )}
-
-                    {/* Upload progress */}
-                    {uploadProgress && (
-                      <div className="flex items-center gap-2 py-2">
-                        <span className="material-symbols-outlined animate-spin text-primary text-[18px]">progress_activity</span>
-                        <span className="text-xs text-white/60 font-semibold">{uploadProgress}</span>
-                      </div>
-                    )}
-
-                    {/* File info */}
-                    {selectedFile && (
-                      <div className="flex items-center gap-2 text-xs text-white/40 border-t border-[#363636] pt-3">
-                        <span className="material-symbols-outlined text-[16px]">attach_file</span>
-                        <span className="truncate">{selectedFile.name}</span>
-                        <span>({(selectedFile.size / 1024 / 1024).toFixed(1)}MB)</span>
-                      </div>
-                    )}
                   </div>
-                </div>
-              )}
+                )}
+
+                {/* STEP 2: Details */}
+                {createStep === "details" && (
+                  <div className="flex flex-col">
+                    {/* Preview — compact on mobile, square-ish */}
+                    <div className="w-full bg-black flex items-center justify-center" style={{ maxHeight: "50vw", minHeight: "200px" }}>
+                      {previewUrl ? (
+                        selectedFile?.type.startsWith("video/") ? (
+                          <video src={previewUrl} controls className="w-full object-contain" style={{ maxHeight: "50vw" }} />
+                        ) : (
+                          <img src={previewUrl} alt="Preview" className="w-full object-contain" style={{ maxHeight: "50vw" }} />
+                        )
+                      ) : (imageUrl || videoUrl) ? (
+                        <img
+                          src={imageUrl || videoUrl} alt="URL Preview"
+                          className="w-full object-contain" style={{ maxHeight: "50vw" }}
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                        />
+                      ) : (
+                        <div className="flex flex-col items-center justify-center py-10 text-white/30">
+                          <span className="material-symbols-outlined text-[48px]">image</span>
+                          <p className="text-sm mt-2">No preview</p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Details form */}
+                    <div className="p-4 space-y-4 bg-[#262626]">
+                      {/* User info row */}
+                      {user && (
+                        <div className="flex items-center gap-2 pb-3 border-b border-[#363636]">
+                          <img src={user.avatar} alt="" className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
+                          <span className="text-white font-bold text-sm">{user.username || user.fullName}</span>
+                        </div>
+                      )}
+
+                      {/* Type selector pills */}
+                      <div className="flex gap-2">
+                        {(["post", "story", "reel"] as const).map((t) => (
+                          <button
+                            key={t} type="button" onClick={() => setCreateType(t)}
+                            className={`px-3 py-1 rounded-full text-[11px] font-bold transition-all ${
+                              createType === t ? "bg-primary text-white" : "bg-[#363636] text-white/60 hover:text-white"
+                            }`}
+                          >
+                            {t.toUpperCase()}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Caption */}
+                      {createType !== "story" && (
+                        <textarea
+                          value={caption}
+                          onChange={(e) => setCaption(e.target.value)}
+                          placeholder="Write a caption..."
+                          rows={3}
+                          className="w-full bg-transparent border-none text-white text-sm placeholder:text-white/30 focus:outline-none focus:ring-0 resize-none"
+                        />
+                      )}
+
+                      {/* Tone */}
+                      {createType === "post" && (
+                        <div className="space-y-1.5">
+                          <label className="text-[11px] text-white/50 font-bold uppercase tracking-wider">Tone</label>
+                          <select
+                            value={tone}
+                            onChange={(e) => setTone(e.target.value)}
+                            className="w-full bg-[#363636] border border-[#464646] rounded-lg py-2 px-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-primary"
+                          >
+                            <option value="Cyberpunk">Cyberpunk</option>
+                            <option value="Minimalist">Minimalist</option>
+                            <option value="Hype Aesthetic">Hype Aesthetic</option>
+                            <option value="Bio Digital">Bio Digital</option>
+                          </select>
+                        </div>
+                      )}
+
+                      {/* Upload progress */}
+                      {uploadProgress && (
+                        <div className="flex items-center gap-2 py-1">
+                          <span className="material-symbols-outlined animate-spin text-primary text-[18px]">progress_activity</span>
+                          <span className="text-xs text-white/60 font-semibold">{uploadProgress}</span>
+                        </div>
+                      )}
+
+                      {/* File info */}
+                      {selectedFile && (
+                        <div className="flex items-center gap-2 text-xs text-white/40 border-t border-[#363636] pt-3">
+                          <span className="material-symbols-outlined text-[16px]">attach_file</span>
+                          <span className="truncate">{selectedFile.name}</span>
+                          <span className="flex-shrink-0">({(selectedFile.size / 1024 / 1024).toFixed(1)}MB)</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>{/* end scrollable body */}
             </div>
           </div>
         )}
