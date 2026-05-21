@@ -638,7 +638,11 @@ export const dbService = {
       .select()
       .single();
 
-    if (error || !data) return null;
+    if (error) {
+      console.error("Supabase createPost error:", error);
+      return null;
+    }
+    if (!data) return null;
 
     return {
       id: data.id,
@@ -757,7 +761,11 @@ export const dbService = {
       .select()
       .single();
 
-    if (error || !data) return null;
+    if (error) {
+      console.error("Supabase addStory error:", error);
+      return null;
+    }
+    if (!data) return null;
 
     return {
       id: data.id,
@@ -857,7 +865,11 @@ export const dbService = {
       .select()
       .single();
 
-    if (error || !data) return null;
+    if (error) {
+      console.error("Supabase addReel error:", error);
+      return null;
+    }
+    if (!data) return null;
 
     return {
       id: data.id,
