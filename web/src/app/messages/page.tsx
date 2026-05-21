@@ -223,9 +223,11 @@ export default function Messages() {
   }
 
   return (
-    <div className="pt-20 pb-32 md:py-0 flex flex-col lg:flex-row gap-6 max-w-5xl mx-auto h-[calc(100vh-120px)] md:h-[calc(100vh-64px)] animate-in fade-in duration-300">
-      {/* Sidebar */}
-      <div className="w-full lg:w-96 flex flex-col h-full bg-transparent overflow-y-auto no-scrollbar pr-2 border-r border-white/20">
+    <div className="pt-20 pb-32 md:py-0 flex flex-col lg:flex-row gap-6 max-w-5xl mx-auto h-[calc(100vh-130px)] md:h-[calc(100vh-64px)] animate-in fade-in duration-300">
+      {/* Sidebar - Hidden on mobile if a chat is active */}
+      <div className={`w-full lg:w-96 flex flex-col h-full bg-transparent overflow-y-auto no-scrollbar pr-2 lg:border-r border-white/20 ${
+        selectedChatId ? "hidden lg:flex" : "flex"
+      }`}>
         <h2 className="text-2xl font-bold font-headline-md mb-4 hidden lg:block">Messages</h2>
 
         {/* Tabs */}
@@ -342,7 +344,6 @@ export default function Messages() {
             ) : (
               incomingRequests.map(req => (
                 <div key={req.id} className="p-4 rounded-lg glass-panel border border-white/40 shadow-sm space-y-3">
-                  {/* Follow back badge */}
                   <div className="flex items-center gap-2 mb-1">
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-primary/10 text-primary rounded-full text-[10px] font-bold font-label-caps">
                       <span className="material-symbols-outlined text-[12px]">person_add</span>
@@ -363,7 +364,6 @@ export default function Messages() {
                     </div>
                   </div>
 
-                  {/* Accept = Follow Back + opens chat for BOTH users */}
                   <div className="flex gap-2">
                     <button
                       onClick={() => handleAcceptRequest(req)}
@@ -398,17 +398,31 @@ export default function Messages() {
         )}
       </div>
 
-      {/* Chat Window */}
+      {/* Chat Window - Hidden on mobile if no chat is active */}
       {activeChat ? (
-        <div className="flex-1 flex flex-col glass-panel rounded-lg shadow-xl border-white/50 bg-white/70 overflow-hidden h-full">
+        <div className={`flex-1 flex flex-col glass-panel rounded-lg shadow-xl border-white/50 bg-white/70 overflow-hidden h-full ${
+          selectedChatId ? "flex" : "hidden lg:flex"
+        }`}>
+          {/* Header */}
           <div className="p-4 border-b border-black/5 flex justify-between items-center bg-white/40 backdrop-blur-md">
-            <Link href={`/user/${activeChat.username}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-              <img className="w-10 h-10 rounded-full object-cover" src={activeChat.avatar} alt={activeChat.name} />
-              <div>
-                <h3 className="font-bold text-[15px] font-headline-sm">{activeChat.name}</h3>
-                <p className="text-xs text-primary font-semibold">@{activeChat.username}</p>
-              </div>
-            </Link>
+            <div className="flex items-center gap-3">
+              {/* Responsive Mobile Back Button */}
+              <button
+                onClick={() => setSelectedChatId(null)}
+                className="lg:hidden w-8 h-8 flex items-center justify-center rounded-full hover:bg-black/5 active:scale-95 transition-all text-on-surface-variant mr-1"
+              >
+                <span className="material-symbols-outlined text-[24px]">arrow_back</span>
+              </button>
+
+              <Link href={`/user/${activeChat.username}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+                <img className="w-10 h-10 rounded-full object-cover" src={activeChat.avatar} alt={activeChat.name} />
+                <div>
+                  <h3 className="font-bold text-[15px] font-headline-sm leading-tight">{activeChat.name}</h3>
+                  <p className="text-xs text-primary font-semibold">@{activeChat.username}</p>
+                </div>
+              </Link>
+            </div>
+            
             <div className="flex items-center gap-2">
               <button onClick={handleDraftReply} className="flex items-center gap-1 px-3 py-1.5 bg-primary/10 text-primary rounded-full text-xs font-bold whitespace-nowrap active:scale-95 transition-all">
                 <span className="material-symbols-outlined text-[15px]">auto_awesome</span>
@@ -469,7 +483,10 @@ export default function Messages() {
           </form>
         </div>
       ) : (
-        <div className="flex-1 flex flex-col items-center justify-center glass-panel rounded-lg shadow-xl bg-white/70 h-full text-center p-6 space-y-4">
+        /* Hidden on mobile completely when no active chat is loaded */
+        <div className={`flex-1 flex flex-col items-center justify-center glass-panel rounded-lg shadow-xl bg-white/70 h-full text-center p-6 space-y-4 ${
+          selectedChatId ? "flex" : "hidden lg:flex"
+        }`}>
           <span className="material-symbols-outlined text-outline-variant text-[56px]">chat_bubble</span>
           <p className="text-lg font-bold text-on-surface">Your Messages</p>
           <p className="text-sm text-outline-variant max-w-xs">
