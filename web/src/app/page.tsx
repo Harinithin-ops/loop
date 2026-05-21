@@ -141,10 +141,11 @@ export default function HomeFeed() {
     if (!confirm("Are you sure you want to delete this post?")) return;
     const success = await dbService.deletePost(postId);
     if (success) {
-      setPosts(posts.filter((p) => p.id !== postId));
+      // Use functional update to avoid stale-closure: always filter from the latest state
+      setPosts((prev) => prev.filter((p) => p.id !== postId));
       alert("Post deleted successfully!");
     } else {
-      alert("Failed to delete post from database. Please ensure you have run the Supabase RLS SQL fix script.");
+      alert("Failed to delete post. Please run the Supabase RLS SQL fix script and try again.");
     }
   };
 
@@ -577,11 +578,12 @@ export default function HomeFeed() {
           onDeletePost={async (postId) => {
             const success = await dbService.deletePost(postId);
             if (success) {
-              setPosts(posts.filter((p) => p.id !== postId));
+              // Use functional update to avoid stale-closure: always filter from the latest state
+              setPosts((prev) => prev.filter((p) => p.id !== postId));
               setActivePost(null);
               alert("Post deleted successfully!");
             } else {
-              alert("Failed to delete post from database. Please ensure you have run the Supabase RLS SQL fix script.");
+              alert("Failed to delete post. Please run the Supabase RLS SQL fix script and try again.");
             }
           }}
         />

@@ -445,11 +445,12 @@ export default function PublicUserProfile() {
           onDeletePost={async (postId) => {
             const success = await dbService.deletePost(postId);
             if (success) {
+              // Instantly remove only the deleted post using functional update (no stale closure)
+              setPosts((prev) => prev.filter((p) => p.id !== postId));
               setActivePost(null);
-              await loadProfile();
               alert("Post deleted successfully!");
             } else {
-              alert("Failed to delete post from database. Please ensure you have run the Supabase RLS SQL fix script.");
+              alert("Failed to delete post. Please run the Supabase RLS SQL fix script and try again.");
             }
           }}
         />

@@ -322,11 +322,12 @@ export default function CreatorProfile() {
           onDeletePost={async (postId) => {
             const success = await dbService.deletePost(postId);
             if (success) {
+              // Instantly remove the post from the grid using functional update (no stale closure)
+              setUserPosts((prev) => prev.filter((p) => p.id !== postId));
               setActivePost(null);
-              await loadProfileData();
               alert("Post deleted successfully!");
             } else {
-              alert("Failed to delete post from database. Please ensure you have run the Supabase RLS SQL fix script.");
+              alert("Failed to delete post. Please run the Supabase RLS SQL fix script and try again.");
             }
           }}
         />
