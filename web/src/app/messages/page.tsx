@@ -17,6 +17,13 @@ export default function Messages() {
   const [acceptingId, setAcceptingId] = useState<string | null>(null);
   const [newChatFlash, setNewChatFlash] = useState<string | null>(null); // userId of newly added chat
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const selectedChatIdRef = useRef<string | null>(null);
+  const hasInitiallySelectedRef = useRef(false);
+
+  // Sync ref with selectedChatId to prevent stale closure bugs in setInterval
+  useEffect(() => {
+    selectedChatIdRef.current = selectedChatId;
+  }, [selectedChatId]);
 
   const [translatedMsgIds, setTranslatedMsgIds] = useState<Record<string, string>>({});
 
@@ -31,7 +38,16 @@ export default function Messages() {
         ]);
         setChats(activeChats);
         setIncomingRequests(requests);
-        if (activeChats.length > 0 && !selectedChatId) {
+
+        // Only auto-select the first chat on the VERY FIRST load, and ONLY on desktop viewports
+        if (
+          activeChats.length > 0 &&
+          !selectedChatIdRef.current &&
+          !hasInitiallySelectedRef.current &&
+          typeof window !== "undefined" &&
+          window.innerWidth >= 1024
+        ) {
+          hasInitiallySelectedRef.current = true;
           setSelectedChatId(activeChats[0].id);
         }
       }
