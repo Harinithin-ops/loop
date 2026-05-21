@@ -26,6 +26,8 @@ export default function HomeFeed() {
   const [editingPostId, setEditingPostId] = useState<string | null>(null);
   const [editCaption, setEditCaption] = useState("");
   const [activePost, setActivePost] = useState<RealPost | null>(null);
+  // Which post's "..." action sheet is open
+  const [openMenuPostId, setOpenMenuPostId] = useState<string | null>(null);
 
   // Post reactions state map
   const [postReactions, setPostReactions] = useState<Record<string, Reaction[]>>({});
@@ -278,33 +280,84 @@ export default function HomeFeed() {
                         {post.tone}
                       </span>
                     )}
-                    {isOwner ? (
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => {
-                            setEditingPostId(post.id);
-                            setEditCaption(post.caption);
-                          }}
-                          className="w-8 h-8 rounded-full hover:bg-black/5 flex items-center justify-center text-primary"
-                          title="Edit Post"
-                        >
-                          <span className="material-symbols-outlined text-base">edit</span>
-                        </button>
-                        <button
-                          onClick={() => handleDeletePost(post.id)}
-                          className="w-8 h-8 rounded-full hover:bg-red-500/10 flex items-center justify-center text-red-500"
-                          title="Delete Post"
-                        >
-                          <span className="material-symbols-outlined text-base">delete</span>
-                        </button>
-                      </div>
-                    ) : (
-                      <span className="material-symbols-outlined text-outline-variant cursor-pointer hover:text-primary">
-                        more_horiz
-                      </span>
-                    )}
+                    {/* Unified "..." menu button for ALL posts */}
+                    <button
+                      onClick={() => setOpenMenuPostId(openMenuPostId === post.id ? null : post.id)}
+                      className="w-8 h-8 rounded-full hover:bg-black/5 flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors"
+                      title="More options"
+                    >
+                      <span className="material-symbols-outlined text-[22px]">more_horiz</span>
+                    </button>
                   </div>
                 </div>
+
+                {/* ── ACTION SHEET (Instagram-style) ── */}
+                {openMenuPostId === post.id && (
+                  <>
+                    {/* Backdrop to dismiss */}
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setOpenMenuPostId(null)}
+                    />
+                    <div className="relative z-50">
+                      <div className="mx-3 mb-1 bg-[#1c1c1e] dark:bg-[#2c2c2e] border border-white/10 rounded-2xl overflow-hidden shadow-2xl animate-in slide-in-from-top-1 fade-in duration-150">
+
+                        {/* OWNER-ONLY: Delete */}
+                        {isOwner && (
+                          <>
+                            <button
+                              onClick={() => { setOpenMenuPostId(null); handleDeletePost(post.id); }}
+                              className="w-full px-4 py-3.5 text-center text-[15px] font-semibold text-red-500 hover:bg-white/5 active:bg-white/10 transition-colors border-b border-white/10"
+                            >
+                              Delete
+                            </button>
+                            <button
+                              onClick={() => { setOpenMenuPostId(null); setEditingPostId(post.id); setEditCaption(post.caption); }}
+                              className="w-full px-4 py-3.5 text-center text-[15px] font-medium text-on-surface hover:bg-white/5 active:bg-white/10 transition-colors border-b border-white/10"
+                            >
+                              Edit
+                            </button>
+                          </>
+                        )}
+
+                        {/* ALL USERS */}
+                        <button
+                          onClick={() => { setOpenMenuPostId(null); alert("Like count visibility toggled."); }}
+                          className="w-full px-4 py-3.5 text-center text-[15px] font-medium text-on-surface hover:bg-white/5 active:bg-white/10 transition-colors border-b border-white/10"
+                        >
+                          Unhide like count to others
+                        </button>
+                        <button
+                          onClick={() => { setOpenMenuPostId(null); alert("Commenting setting toggled."); }}
+                          className="w-full px-4 py-3.5 text-center text-[15px] font-medium text-on-surface hover:bg-white/5 active:bg-white/10 transition-colors border-b border-white/10"
+                        >
+                          Turn on commenting
+                        </button>
+                        <button
+                          onClick={() => { setOpenMenuPostId(null); setActivePost(post); }}
+                          className="w-full px-4 py-3.5 text-center text-[15px] font-medium text-on-surface hover:bg-white/5 active:bg-white/10 transition-colors border-b border-white/10"
+                        >
+                          Go to post
+                        </button>
+                        <button
+                          onClick={() => { setOpenMenuPostId(null); window.location.href = post.authorUsername ? `/user/${post.authorUsername}` : "#"; }}
+                          className="w-full px-4 py-3.5 text-center text-[15px] font-medium text-on-surface hover:bg-white/5 active:bg-white/10 transition-colors border-b border-white/10"
+                        >
+                          About this account
+                        </button>
+
+                        {/* Cancel */}
+                        <button
+                          onClick={() => setOpenMenuPostId(null)}
+                          className="w-full px-4 py-3.5 text-center text-[15px] font-semibold text-on-surface hover:bg-white/5 active:bg-white/10 transition-colors"
+                        >
+                          Cancel
+                        </button>
+
+                      </div>
+                    </div>
+                  </>
+                )}
 
                 {/* Description content or Edit Box */}
                 {isEditing ? (
