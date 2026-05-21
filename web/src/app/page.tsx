@@ -139,9 +139,13 @@ export default function HomeFeed() {
 
   const handleDeletePost = async (postId: string) => {
     if (!confirm("Are you sure you want to delete this post?")) return;
-    await dbService.deletePost(postId);
-    setPosts(posts.filter((p) => p.id !== postId));
-    alert("Post deleted successfully!");
+    const success = await dbService.deletePost(postId);
+    if (success) {
+      setPosts(posts.filter((p) => p.id !== postId));
+      alert("Post deleted successfully!");
+    } else {
+      alert("Failed to delete post from database. Please ensure you have run the Supabase RLS SQL fix script.");
+    }
   };
 
   const sendAiCommand = async (e: React.FormEvent) => {
@@ -571,9 +575,14 @@ export default function HomeFeed() {
           currentUser={currentUser}
           onClose={() => setActivePost(null)}
           onDeletePost={async (postId) => {
-            await dbService.deletePost(postId);
-            setActivePost(null);
-            await loadData();
+            const success = await dbService.deletePost(postId);
+            if (success) {
+              setPosts(posts.filter((p) => p.id !== postId));
+              setActivePost(null);
+              alert("Post deleted successfully!");
+            } else {
+              alert("Failed to delete post from database. Please ensure you have run the Supabase RLS SQL fix script.");
+            }
           }}
         />
       )}

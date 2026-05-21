@@ -443,9 +443,14 @@ export default function PublicUserProfile() {
           currentUser={currentUser}
           onClose={() => setActivePost(null)}
           onDeletePost={async (postId) => {
-            await dbService.deletePost(postId);
-            setActivePost(null);
-            await loadProfile();
+            const success = await dbService.deletePost(postId);
+            if (success) {
+              setActivePost(null);
+              await loadProfile();
+              alert("Post deleted successfully!");
+            } else {
+              alert("Failed to delete post from database. Please ensure you have run the Supabase RLS SQL fix script.");
+            }
           }}
         />
       )}

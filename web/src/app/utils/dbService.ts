@@ -671,7 +671,11 @@ export const dbService = {
       .from("posts")
       .delete()
       .eq("id", postId);
-    return !error;
+    if (error) {
+      console.error("Supabase deletePost error:", error);
+      return false;
+    }
+    return true;
   },
 
   // =================== STORIES ===================
