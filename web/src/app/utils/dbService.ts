@@ -299,7 +299,26 @@ export const dbService = {
     const avatar = demo ? demo.avatar_url : "/images/avatar_marcus_1779191788520.png";
     const bio = demo ? demo.bio : "Demo User Bio";
 
-    // Use a special demo email to authenticate in Supabase
+    // FAST PATH: For known demo profiles, skip Supabase auth entirely.
+    // Using their pre-known UUID means:
+    // 1. No auth.signInWithPassword / auth.signUp calls
+    // 2. No HTTP 429 rate limit errors
+    // 3. Instant login
+    if (demo) {
+      const userObj: RealUser = {
+        id: demo.id,
+        email: cleanEmail,
+        fullName: name,
+        username: username,
+        avatar: avatar,
+        bio: bio || "Demo User Bio",
+        gmail: cleanEmail
+      };
+      await this.ensureProfileExists(userObj);
+      return userObj;
+    }
+
+    // FULL PATH: For non-demo users, try real Supabase auth
     const demoEmail = `demo_${username.replace(/[^a-zA-Z0-9]/g, "_")}@loop.ai`.toLowerCase();
     const demoPassword = "DemoPassword123!";
 
@@ -314,8 +333,8 @@ export const dbService = {
       if (signInData?.user) {
         authUser = signInData.user;
       } else if (signInError) {
-        // 2. Try signing up if sign in failed
-        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        // 2. Try signing up if sign in failed (may be rate limited on free tier)
+        const { data: signUpData } = await supabase.auth.signUp({
           email: demoEmail,
           password: demoPassword,
           options: {
@@ -333,8 +352,8 @@ export const dbService = {
       console.warn("Bypass auth helper failed:", e);
     }
 
-    // Fallback if background auth fails (e.g. offline or network issue)
-    const userId = authUser?.id || (demo ? demo.id : "demo-user-id");
+    // Fallback if background auth fails (e.g. rate limit or network issue)
+    const userId = authUser?.id || ("fallback-" + username + "-" + Date.now().toString(36));
 
     const userObj: RealUser = {
       id: userId,
@@ -1631,9 +1650,9 @@ export const dbService = {
             .from("messages")
             .select("*")
             .or(
-              `and(senderId.eq.${user.id},receiverId.eq.${profile.id}),and(senderId.eq.${profile.id},receiverId.eq.${user.id})`
+              `and(sender_id.eq.${user.id},receiver_id.eq.${profile.id}),and(sender_id.eq.${profile.id},receiver_id.eq.${user.id})`
             )
-            .order("createdAt", { ascending: true });
+            .order("created_at", { ascending: true });
           if (data) dbMessages = data;
         } catch (e) {
           console.warn("Supabase fetch messages failed:", e);
@@ -1648,12 +1667,12 @@ export const dbService = {
         dbMessages.forEach(m => {
           messageMap.set(m.id, {
             id: m.id,
-            senderId: m.senderId,
-            senderName: m.senderId === user.id ? user.fullName : (profile.full_name || profile.username),
-            senderAvatar: m.senderId === user.id ? user.avatar : (profile.avatar_url || "/images/avatar_marcus_1779191788520.png"),
+            senderId: m.sender_id || m.senderId,
+            senderName: (m.sender_id || m.senderId) === user.id ? user.fullName : (profile.full_name || profile.username),
+            senderAvatar: (m.sender_id || m.senderId) === user.id ? user.avatar : (profile.avatar_url || "/images/avatar_marcus_1779191788520.png"),
             text: m.content,
-            createdAt: m.createdAt,
-            isRead: m.isRead ?? true,
+            createdAt: m.created_at || m.createdAt,
+            isRead: m.is_read ?? m.isRead ?? true,
           });
         });
 
@@ -1786,10 +1805,10 @@ export const dbService = {
         .from("messages")
         .insert({
           content: text,
-          senderId: user.id,
-          receiverId: receiverId,
-          isRead: false,
-          createdAt: timestamp,
+          sender_id: user.id,
+          receiver_id: receiverId,
+          is_read: false,
+          created_at: timestamp,
         })
         .select("id")
         .single();
@@ -1846,10 +1865,10 @@ export const dbService = {
     try {
       await supabase
         .from("messages")
-        .update({ isRead: true })
-        .eq("senderId", chatUserId)
-        .eq("receiverId", user.id)
-        .eq("isRead", false);
+        .update({ is_read: true })
+        .eq("sender_id", chatUserId)
+        .eq("receiver_id", user.id)
+        .eq("is_read", false);
     } catch (e) {
       console.warn("Supabase markMessagesAsRead failed:", e);
     }
@@ -1860,6 +1879,17 @@ export const dbService = {
     if (!user) return 0;
 
     // Primary source: Supabase (cross-device, real-time accurate)
+    // Try both snake_case (receiver_id) and camelCase (receiverId) for compatibility
+    try {
+      const { count } = await supabase
+        .from("messages")
+        .select("*", { count: "exact", head: true })
+        .eq("receiver_id", user.id)
+        .eq("is_read", false);
+      if (count !== null) return count;
+    } catch (e) {
+      console.warn("Supabase getTotalUnreadCount (snake_case) failed, trying camelCase:", e);
+    }
     try {
       const { count } = await supabase
         .from("messages")
@@ -1867,8 +1897,8 @@ export const dbService = {
         .eq("receiverId", user.id)
         .eq("isRead", false);
       if (count !== null) return count;
-    } catch (e) {
-      console.warn("Supabase getTotalUnreadCount failed, falling back to localStorage:", e);
+    } catch {
+      console.warn("Supabase getTotalUnreadCount (camelCase) failed, falling back to localStorage.");
     }
 
     // Fallback: local messages (only visible on same device)
