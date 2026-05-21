@@ -383,7 +383,7 @@ export const dbService = {
           fullName: (!profile.name || profile.name === "Unknown User") 
             ? (session.user.user_metadata?.full_name || session.user.email?.split("@")[0].toUpperCase() || "Real User") 
             : profile.name,
-          username: profile.username || session.user.email?.split("@")[0] || "real_user",
+          username: profile.username || session.user.user_metadata?.username || session.user.email?.split("@")[0] || "real_user",
           avatar: profile.avatar || "/images/avatar_marcus_1779191788520.png",
           bio: profile.bio || "Active User Bio",
           gmail: profile.gmail || session.user.email || "",

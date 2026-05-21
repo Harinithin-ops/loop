@@ -10,6 +10,7 @@ export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [username, setUsername] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -47,13 +48,29 @@ export default function SignupPage() {
     setLoading(true);
     setError(null);
 
+    const cleanUsername = username.toLowerCase().trim().replace(/[^a-z0-9_]/g, "");
+    if (cleanUsername.length < 3) {
+      setError("Username must be at least 3 characters and only contain letters, numbers, or underscores.");
+      setLoading(false);
+      return;
+    }
+
     try {
+      // Validate that username is unique
+      const available = await dbService.checkUsernameAvailable(cleanUsername);
+      if (!available) {
+        setError(`The username @${cleanUsername} is already taken. Please try another one.`);
+        setLoading(false);
+        return;
+      }
+
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
             full_name: fullName,
+            username: cleanUsername,
           },
         },
       });
@@ -112,6 +129,23 @@ export default function SignupPage() {
                   onChange={(e) => setFullName(e.target.value)}
                   className="w-full bg-surface-container-low/50 border border-black/10 rounded-xl py-3 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all placeholder:text-on-surface-variant/50"
                   placeholder="John Doe"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-on-surface-variant uppercase font-label-caps tracking-wider">
+                Username
+              </label>
+              <div className="relative">
+                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm font-semibold">alternate_email</span>
+                <input
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="w-full bg-surface-container-low/50 border border-black/10 rounded-xl py-3 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all placeholder:text-on-surface-variant/50 font-mono"
+                  placeholder="username"
                   required
                 />
               </div>
