@@ -192,9 +192,45 @@ export const saveLocalMessages = (messages: LocalMessage[]) => {
 
 export const profileCache = new Map<string, { name: string; username: string; avatar: string; bio: string; gmail: string }>();
 
+// Local active user storage cache helpers
+const getStoredActiveUser = (): RealUser | null => {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem("loop_active_user");
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+};
+
+const setStoredActiveUser = (user: RealUser | null) => {
+  if (typeof window === "undefined") return;
+  try {
+    if (user) {
+      localStorage.setItem("loop_active_user", JSON.stringify(user));
+    } else {
+      localStorage.removeItem("loop_active_user");
+    }
+  } catch {}
+};
+
 const getProfile = async (userId: string) => {
   if (profileCache.has(userId)) {
     return profileCache.get(userId)!;
+  }
+
+  // Check localStorage for a cached copy of the profile (optimistic UI update fallback)
+  let localAvatar = null;
+  let localName = null;
+  let localBio = null;
+  let localGmail = null;
+  if (typeof window !== "undefined") {
+    try {
+      localAvatar = localStorage.getItem(`loop_profile_avatar_${userId}`);
+      localName = localStorage.getItem(`loop_profile_name_${userId}`);
+      localBio = localStorage.getItem(`loop_profile_bio_${userId}`);
+      localGmail = localStorage.getItem(`loop_profile_gmail_${userId}`);
+    } catch {}
   }
 
   // Skip Supabase query entirely for non-UUID IDs to prevent HTTP 400
@@ -202,11 +238,14 @@ const getProfile = async (userId: string) => {
   let dbProfile = null;
   if (isValidUUID(userId)) {
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", userId)
         .single();
+      if (error) {
+        console.warn("Supabase profiles single select error:", error.message);
+      }
       dbProfile = data;
     } catch (e) {
       console.warn("Could not query profile from Supabase:", e);
@@ -214,11 +253,11 @@ const getProfile = async (userId: string) => {
   }
 
   const result = {
-    name: dbProfile?.full_name || dbProfile?.username || "Unknown User",
+    name: localName || dbProfile?.full_name || dbProfile?.username || "Unknown User",
     username: dbProfile?.username || "",
-    avatar: dbProfile?.avatar_url || "/images/avatar_marcus_1779191788520.png",
-    bio: dbProfile?.bio || "",
-    gmail: dbProfile?.gmail || "",
+    avatar: localAvatar || dbProfile?.avatar_url || "/images/avatar_marcus_1779191788520.png",
+    bio: localBio || dbProfile?.bio || "",
+    gmail: localGmail || dbProfile?.gmail || "",
   };
 
   profileCache.set(userId, result);
@@ -252,6 +291,7 @@ if (typeof window !== "undefined") {
   // Bust the caches instantly when auth state changes (e.g. login, logout, password reset)
   supabase.auth.onAuthStateChange(() => {
     cachedActiveUser = null;
+    setStoredActiveUser(null);
     profilesEnsured.clear();
   });
 }
@@ -284,6 +324,23 @@ export const dbService = {
     }
   },
 
+  async syncActiveUserInBackground(userId: string, email?: string) {
+    try {
+      const profile = await getProfile(userId);
+      const userObj = {
+        id: userId,
+        email: email || "",
+        fullName: (!profile.name || profile.name === "Unknown User") ? "Real User" : profile.name,
+        username: profile.username || "real_user",
+        avatar: profile.avatar || "/images/avatar_marcus_1779191788520.png",
+        bio: profile.bio || "Active User Bio",
+        gmail: profile.gmail || email || "",
+      };
+      setStoredActiveUser(userObj);
+      cachedActiveUser = userObj;
+    } catch {}
+  },
+
   async getActiveUser(): Promise<RealUser | null> {
     if (cachedActiveUser) return cachedActiveUser;
 
@@ -292,6 +349,15 @@ export const dbService = {
         data: { session },
       } = await supabase.auth.getSession();
       if (session?.user) {
+        // Return localStorage fallback active user immediately for ultra-fast, offline-capable load
+        const stored = getStoredActiveUser();
+        if (stored && stored.id === session.user.id) {
+          cachedActiveUser = stored;
+          // Trigger silent background sync to ensure it matches the database
+          this.syncActiveUserInBackground(session.user.id, session.user.email);
+          return stored;
+        }
+
         const profile = await getProfile(session.user.id);
         const userObj = {
           id: session.user.id,
@@ -305,8 +371,11 @@ export const dbService = {
           gmail: profile.gmail || session.user.email || "",
         };
         await this.ensureProfileExists(userObj);
+        setStoredActiveUser(userObj);
         cachedActiveUser = userObj;
         return userObj;
+      } else {
+        setStoredActiveUser(null);
       }
     } catch (e) {
       console.warn("Auth session check failed:", e);
@@ -497,10 +566,29 @@ export const dbService = {
       return false;
     }
 
-    // Bust the in-memory cache so the next getActiveUser() fetches fresh data
-    // (including the new avatar_url) instead of returning the stale cached profile
+    // Bust the in-memory cache
     profileCache.delete(user.id);
-    cachedActiveUser = null;
+
+    // Save and cache to localStorage to ensure instant optimistic updates across pages
+    const updatedUser = {
+      ...user,
+      fullName: updates.full_name !== undefined ? updates.full_name : user.fullName,
+      bio: updates.bio !== undefined ? updates.bio : user.bio,
+      avatar: updates.avatar_url !== undefined ? updates.avatar_url : user.avatar,
+      gmail: updates.gmail !== undefined ? updates.gmail : user.gmail,
+    };
+    setStoredActiveUser(updatedUser);
+    cachedActiveUser = updatedUser;
+
+    if (typeof window !== "undefined") {
+      try {
+        if (updates.avatar_url !== undefined) localStorage.setItem(`loop_profile_avatar_${user.id}`, updates.avatar_url);
+        if (updates.full_name !== undefined) localStorage.setItem(`loop_profile_name_${user.id}`, updates.full_name);
+        if (updates.bio !== undefined) localStorage.setItem(`loop_profile_bio_${user.id}`, updates.bio);
+        if (updates.gmail !== undefined) localStorage.setItem(`loop_profile_gmail_${user.id}`, updates.gmail);
+      } catch {}
+    }
+
     return true;
   },
 
