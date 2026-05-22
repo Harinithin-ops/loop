@@ -190,6 +190,26 @@ export const saveLocalMessages = (messages: LocalMessage[]) => {
   } catch {}
 };
 
+export const getLocalStories = (): RealStory[] => {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = sessionStorage.getItem("loop_local_stories") ||
+                localStorage.getItem("loop_local_stories");
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+};
+
+export const saveLocalStories = (stories: RealStory[]) => {
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.setItem("loop_local_stories", JSON.stringify(stories));
+    localStorage.setItem("loop_local_stories", JSON.stringify(stories));
+    window.dispatchEvent(new Event("loop_feed_refresh"));
+  } catch {}
+};
+
 export const profileCache = new Map<string, { name: string; username: string; avatar: string; bio: string; gmail: string }>();
 
 // Local active user storage cache helpers
@@ -801,16 +821,23 @@ export const dbService = {
   // =================== STORIES ===================
 
   async getStories(): Promise<RealStory[]> {
-    const { data, error } = await supabase
-      .from("stories")
-      .select("*")
-      .gt("expiresAt", new Date().toISOString())
-      .order("createdAt", { ascending: true });
+    let dbStories: any[] = [];
+    try {
+      const { data, error } = await supabase
+        .from("stories")
+        .select("*")
+        .gt("expiresAt", new Date().toISOString())
+        .order("createdAt", { ascending: false });
 
-    if (error || !data) return [];
+      if (data && !error) {
+        dbStories = data;
+      }
+    } catch (e) {
+      console.warn("Supabase getStories failed, using localStorage cache fallback:", e);
+    }
 
     // Pre-batch missing profiles to optimize DB requests
-    const userIds = Array.from(new Set(data.map((s: any) => s.userId)));
+    const userIds = Array.from(new Set(dbStories.map((s: any) => s.userId)));
     const missingIds = userIds.filter((id) => !profileCache.has(id));
     if (missingIds.length > 0) {
       try {
@@ -834,8 +861,8 @@ export const dbService = {
       }
     }
 
-    return Promise.all(
-      data.map(async (s: any) => {
+    const mappedDbStories = await Promise.all(
+      dbStories.map(async (s: any) => {
         const profile = await getProfile(s.userId);
         return {
           id: s.id,
@@ -849,20 +876,46 @@ export const dbService = {
         };
       })
     );
+
+    // Merge database stories with local stories, ensuring no duplicates by ID
+    const localStories = getLocalStories();
+    const allStories = [...localStories];
+    const seenIds = new Set(allStories.map((s) => s.id));
+    
+    for (const s of mappedDbStories) {
+      if (!seenIds.has(s.id)) {
+        allStories.push(s);
+        seenIds.add(s.id);
+      }
+    }
+
+    // Filter out expired stories (older than 24 hours) from display
+    const nowTime = new Date().getTime();
+    const activeStories = allStories.filter((s) => new Date(s.expiresAt).getTime() > nowTime);
+
+    // Sort by createdAt descending
+    return activeStories.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   },
 
   async getStoriesByUserId(userId: string): Promise<RealStory[]> {
-    const { data, error } = await supabase
-      .from("stories")
-      .select("*")
-      .eq("userId", userId)
-      .gt("expiresAt", new Date().toISOString())
-      .order("createdAt", { ascending: true });
+    let dbStories: any[] = [];
+    try {
+      const { data, error } = await supabase
+        .from("stories")
+        .select("*")
+        .eq("userId", userId)
+        .gt("expiresAt", new Date().toISOString())
+        .order("createdAt", { ascending: true });
 
-    if (error || !data) return [];
+      if (data && !error) {
+        dbStories = data;
+      }
+    } catch (e) {
+      console.warn("Supabase getStoriesByUserId failed, using fallback:", e);
+    }
 
     const profile = await getProfile(userId);
-    return data.map((s: any) => ({
+    const mapped = dbStories.map((s: any) => ({
       id: s.id,
       mediaUrl: s.mediaUrl,
       userId: s.userId,
@@ -872,6 +925,22 @@ export const dbService = {
       expiresAt: s.expiresAt,
       createdAt: s.createdAt,
     }));
+
+    const localStories = getLocalStories().filter((s) => s.userId === userId);
+    const allStories = [...localStories];
+    const seenIds = new Set(allStories.map((s) => s.id));
+
+    for (const s of mapped) {
+      if (!seenIds.has(s.id)) {
+        allStories.push(s);
+        seenIds.add(s.id);
+      }
+    }
+
+    const nowTime = new Date().getTime();
+    const activeStories = allStories.filter((s) => new Date(s.expiresAt).getTime() > nowTime);
+
+    return activeStories.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
   },
 
   async addStory(mediaUrl: string): Promise<RealStory | null> {
@@ -879,38 +948,55 @@ export const dbService = {
     if (!user) return null;
 
     const expiresAt = new Date(Date.now() + 86400000).toISOString();
-    const { data, error } = await supabase
-      .from("stories")
-      .insert({ id: generateUUID(), mediaUrl, userId: user.id, expiresAt })
-      .select()
-      .single();
+    const newStoryId = generateUUID();
 
-    if (error) {
-      console.error("Supabase addStory error:", error);
-      return null;
-    }
-    if (!data) return null;
-
-    return {
-      id: data.id,
-      mediaUrl: data.mediaUrl,
+    const localStory: RealStory = {
+      id: newStoryId,
+      mediaUrl,
       userId: user.id,
       userName: user.fullName,
       userUsername: user.username,
       userAvatar: user.avatar,
-      expiresAt: data.expiresAt,
-      createdAt: data.createdAt || new Date().toISOString(),
+      expiresAt,
+      createdAt: new Date().toISOString(),
     };
+
+    // Save to local cache first
+    const currentLocal = getLocalStories();
+    saveLocalStories([localStory, ...currentLocal]);
+
+    // Try to save to database silently in the background
+    try {
+      const { error } = await supabase
+        .from("stories")
+        .insert({ id: newStoryId, mediaUrl, userId: user.id, expiresAt });
+
+      if (error) {
+        console.warn("Supabase addStory warning (using localStorage fallback):", error.message);
+      }
+    } catch (e) {
+      console.warn("Supabase addStory failed silently, using localStorage fallback:", e);
+    }
+
+    return localStory;
   },
 
   async deleteStory(storyId: string): Promise<boolean> {
-    const { error } = await supabase
-      .from("stories")
-      .delete()
-      .eq("id", storyId);
-    if (error) {
-      console.error("Supabase deleteStory error:", error);
-      return false;
+    // 1. Delete from local cache
+    const currentLocal = getLocalStories();
+    saveLocalStories(currentLocal.filter((s) => s.id !== storyId));
+
+    // 2. Delete from Supabase
+    try {
+      const { error } = await supabase
+        .from("stories")
+        .delete()
+        .eq("id", storyId);
+      if (error) {
+        console.error("Supabase deleteStory error:", error);
+      }
+    } catch (e) {
+      console.error("Supabase deleteStory exception:", e);
     }
     return true;
   },
