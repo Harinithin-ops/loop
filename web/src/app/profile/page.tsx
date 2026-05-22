@@ -201,7 +201,7 @@ export default function CreatorProfile() {
         <div className="flex items-center gap-6">
           {/* Avatar */}
           <div className="flex-shrink-0">
-            <div className="w-20 h-20 md:w-24 md:h-24 rounded-full p-[3px] story-gradient">
+            <div className="w-20 h-20 md:w-24 md:h-24 rounded-full p-1 border-2 border-primary/20 bg-surface-container-low">
               <div className="w-full h-full rounded-full border-[3px] border-surface-container-lowest overflow-hidden bg-white">
                 <img src={currentUser.avatar} alt={currentUser.fullName} className="w-full h-full object-cover" />
               </div>

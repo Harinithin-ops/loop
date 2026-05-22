@@ -109,12 +109,6 @@ body {
 .story-gradient {
   background: linear-gradient(45deg, #4F6BFF, #8B7CFF, #FF8BCB);
   padding: 2.5px;
-  animation: rotate-gradient 4s linear infinite;
-}
-
-@keyframes rotate-gradient {
-  0% { filter: hue-rotate(0deg); }
-  100% { filter: hue-rotate(360deg); }
 }
 
 .story-gradient-green {
