@@ -1020,6 +1020,23 @@ export const dbService = {
     };
   },
 
+  async deleteReel(reelId: string): Promise<boolean> {
+    const user = await this.getActiveUser();
+    if (!user) return false;
+
+    const { error } = await supabase
+      .from("reels")
+      .delete()
+      .eq("id", reelId)
+      .eq("userId", user.id);
+
+    if (error) {
+      console.error("Supabase deleteReel error:", error);
+      return false;
+    }
+    return true;
+  },
+
   // =================== FOLLOW REQUEST SYSTEM ===================
 
   async getFollowStatus(targetUserId: string): Promise<FollowStatus> {

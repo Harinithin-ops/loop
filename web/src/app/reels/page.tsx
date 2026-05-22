@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { dbService, RealReel } from "@/app/utils/dbService";
+import { dbService, RealReel, RealUser } from "@/app/utils/dbService";
 import Link from "next/link";
 
 export default function ReelsPage() {
@@ -9,14 +9,19 @@ export default function ReelsPage() {
   const [loading, setLoading] = useState(true);
   const [activeIndex, setActiveIndex] = useState(0);
   const [likedReels, setLikedReels] = useState<Set<string>>(new Set());
+  const [currentUser, setCurrentUser] = useState<RealUser | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const reelRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   useEffect(() => {
     const load = async () => {
       try {
-        const data = await dbService.getReels();
+        const [data, userObj] = await Promise.all([
+          dbService.getReels(),
+          dbService.getActiveUser()
+        ]);
         setReels(data);
+        setCurrentUser(userObj);
       } catch (err) {
         console.error("Failed to load reels", err);
       } finally {
@@ -66,6 +71,23 @@ export default function ReelsPage() {
   const scrollToReel = (direction: "up" | "down") => {
     const nextIdx = direction === "down" ? Math.min(activeIndex + 1, reels.length - 1) : Math.max(activeIndex - 1, 0);
     reelRefs.current[nextIdx]?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const handleDeleteReel = async (reelId: string) => {
+    if (!confirm("Are you sure you want to delete this reel?")) return;
+
+    try {
+      const success = await dbService.deleteReel(reelId);
+      if (success) {
+        setReels((prev) => prev.filter((r) => r.id !== reelId));
+        alert("Reel deleted successfully!");
+      } else {
+        alert("Failed to delete reel.");
+      }
+    } catch (err) {
+      console.error("Error deleting reel:", err);
+      alert("An error occurred while deleting the reel.");
+    }
   };
 
   if (loading) {
@@ -158,6 +180,17 @@ export default function ReelsPage() {
               <button className="flex flex-col items-center gap-1 active:scale-90 transition-transform">
                 <span className="material-symbols-outlined text-[28px] text-white">send</span>
               </button>
+
+              {/* Delete Reel (Only for creator) */}
+              {currentUser && currentUser.id === reel.userId && (
+                <button
+                  onClick={() => handleDeleteReel(reel.id)}
+                  className="flex flex-col items-center gap-1 active:scale-90 transition-transform text-[#ff3040] hover:text-red-500"
+                  title="Delete Reel"
+                >
+                  <span className="material-symbols-outlined text-[28px]">delete</span>
+                </button>
+              )}
 
               {/* Music disc animation */}
               <div className="w-9 h-9 rounded-full border-2 border-white/30 overflow-hidden mt-2 animate-spin" style={{ animationDuration: "4s" }}>
