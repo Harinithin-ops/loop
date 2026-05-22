@@ -7,6 +7,70 @@ import { supabase } from "@/app/utils/supabase";
 import { dbService, uploadFileToStorage, RealNotification } from "@/app/utils/dbService";
 import { useTheme } from "@/app/utils/ThemeProvider";
 
+const renderMobileIcon = (name: string, isActive: boolean) => {
+  switch (name) {
+    case "Home":
+      return isActive ? (
+        <svg aria-label="Home" className="w-[24px] h-[24px]" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M22 23h-6.001a1 1 0 0 1-1-1v-5.5a1.5 1.5 0 0 0-3 0V22a1 1 0 0 1-1 1H3.999a1 1 0 0 1-1-1V10.828a1 1 0 0 1 .293-.707l8.414-8.414a1 1 0 0 1 1.414 0l8.414 8.414a1 1 0 0 1 .293.707V22a1 1 0 0 1-1 1Z" />
+        </svg>
+      ) : (
+        <svg aria-label="Home" className="w-[24px] h-[24px]" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+          <path d="M5.3 22h13.4a1 1 0 0 0 1-1V10.5L12 3.5l-7.7 7v10.5a1 1 0 0 0 1 1Z" />
+        </svg>
+      );
+    case "Explore":
+      return isActive ? (
+        <svg aria-label="Explore" className="w-[24px] h-[24px]" fill="currentColor" viewBox="0 0 24 24">
+          <path fillRule="evenodd" d="M18.966 4.757a1 1 0 0 0-1.009-.076l-10.5 5.25a1 1 0 0 0-.537.67l-2.25 9a1 1 0 0 0 1.216 1.216l9-2.25a1 1 0 0 0 .67-.537l5.25-10.5a1 1 0 0 0-.09-1.023Zm-9.063 9.063-4.821-1.205 7.232-3.616-1.206 4.821Z" />
+          <path fillRule="evenodd" d="M12 21a9 9 0 1 1 9-9 9.01 9.01 0 0 1-9 9Zm0-16.5a7.5 7.5 0 1 0 7.5 7.5 7.508 7.508 0 0 0-7.5-7.5Z" />
+        </svg>
+      ) : (
+        <svg aria-label="Explore" className="w-[24px] h-[24px]" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="10" />
+          <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" />
+        </svg>
+      );
+    case "Reels":
+      return (
+        <svg aria-label="Reels" className="w-[24px] h-[24px]" fill={isActive ? "currentColor" : "none"} stroke="currentColor" strokeWidth={isActive ? "0" : "2"} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+          {isActive ? (
+            <path d="m12.817 5.705 4.544-2.272a1.002 1.002 0 0 1 1.341.445l.91 1.816a1 1 0 0 1-.447 1.341l-4.544 2.27-1.804-3.6Zm-2.012 4.024-4.544 2.272a1 1 0 0 1-1.34-.445l-.91-1.816a1 1 0 0 1 .446-1.341l4.544-2.27 1.804 3.6Zm-2.01-4.02 4.544-2.27a1.002 1.002 0 0 1 1.34.444l.91 1.817a1.002 1.002 0 0 1-.446 1.34l-4.544 2.272-1.804-3.603ZM4.1 12h15.8a1 1 0 0 1 1 1v6a3 3 0 0 1-3 3H6.1a3 3 0 0 1-3-3v-6a1 1 0 0 1 1-1Zm8.404 6.745 3.515-2.028a.5.5 0 0 0 0-.866l-3.515-2.028a.5.5 0 0 0-.75.433v4.056a.5.5 0 0 0 .75.433Z" />
+          ) : (
+            <>
+              <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+              <path d="M2 12h20M2 7h20" />
+              <path d="m7 2 3 5-3 5-3-5 3-5Z" fill="currentColor" stroke="none" />
+              <path d="m17 2 3 5-3 5-3-5 3-5Z" fill="currentColor" stroke="none" />
+              <polygon points="10 16 15 13 10 10 10 16" fill="currentColor" stroke="none" />
+            </>
+          )}
+        </svg>
+      );
+    case "Create":
+      return (
+        <svg aria-label="New Post" className="w-[24px] h-[24px]" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+      );
+    case "Messages":
+      return isActive ? (
+        <svg aria-label="Messages" className="w-[24px] h-[24px]" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M2.003 21a1 1 0 0 1-.707-1.707l19-19a1 1 0 0 1 1.414 1.414l-19 19a1 1 0 0 1-.707.293Z" />
+          <path d="M22.003 2a1 1 0 0 0-.762-.21l-20 4a1 1 0 0 0-.179 1.86l7.1 3.55 3.55 7.1a1 1 0 0 0 1.86-.179l4-20a1 1 0 0 0-.569-1.121Z" />
+        </svg>
+      ) : (
+        <svg aria-label="Messages" className="w-[24px] h-[24px]" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+          <line x1="22" y1="2" x2="11" y2="13"></line>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+        </svg>
+      );
+    default:
+      return null;
+  }
+};
+
 export default function Navbar({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [hideNav, setHideNav] = useState(false);
@@ -263,8 +327,9 @@ export default function Navbar({ children }: { children: React.ReactNode }) {
 
   const mobileItems = [
     { name: "Home", icon: "home", href: "/" },
-    { name: "Explore", icon: "search", href: "/explore" },
-    { name: "Create", icon: "add_circle", href: "#", action: "create" },
+    { name: "Explore", icon: "explore", href: "/explore" },
+    { name: "Reels", icon: "movie", href: "/reels" },
+    { name: "Create", icon: "add_box", href: "#", action: "create" },
     { name: "Messages", icon: "chat_bubble", href: "/messages", badge: unreadCount },
     { name: "Profile", icon: "person", href: "/profile", isProfile: true },
   ];
@@ -567,30 +632,32 @@ export default function Navbar({ children }: { children: React.ReactNode }) {
         <main className="flex-1 md:p-8">{children}</main>
 
         {/* ===== MOBILE BOTTOM NAV ===== */}
-        <nav style={{ transform: hideNav ? "translateY(120%)" : "translateY(0)" }}
-          className="md:hidden fixed bottom-4 left-5 right-5 rounded-full border border-white/20 bg-surface-container-lowest/70 backdrop-blur-xl shadow-xl flex justify-around items-center h-16 px-gutter z-50 transition-transform duration-300 ease-out">
+        <nav
+          className="md:hidden fixed bottom-0 left-0 right-0 w-full bg-[#000000] border-t border-[#121212] flex justify-around items-center h-[52px] z-50 transition-all duration-300">
           {mobileItems.map((item) => {
             const isActive = item.href !== "#" && pathname === item.href;
             if (item.action) {
               return (
                 <button key={item.name} onClick={() => setIsCreateOpen(true)}
-                  className="text-outline-variant hover:text-primary transition-all active:scale-90 duration-300 flex flex-col items-center relative">
-                  <span className="material-symbols-outlined text-[28px]">{item.icon}</span>
+                  className="text-[#a8a8a8] hover:text-white transition-all active:scale-90 duration-200 flex flex-col items-center justify-center relative w-12 h-12">
+                  {renderMobileIcon(item.name, isActive)}
                 </button>
               );
             }
             return (
               <Link key={item.name} href={item.href}
-                className={`transition-all duration-300 flex flex-col items-center relative ${isActive ? "text-primary scale-110" : "text-outline-variant hover:text-primary"}`}>
+                className={`transition-all duration-200 flex flex-col items-center justify-center relative w-12 h-12 ${isActive ? "text-white scale-105" : "text-[#a8a8a8] hover:text-white"}`}>
                 {item.isProfile ? (
-                  <div className={`w-[26px] h-[26px] rounded-full overflow-hidden border-2 ${isActive ? "border-primary" : "border-transparent"}`}>
+                  <div className={`w-[26px] h-[26px] rounded-full overflow-hidden border ${isActive ? "border-white" : "border-transparent"}`}>
                     <img src={userAvatar} alt="" className="w-full h-full object-cover" />
                   </div>
                 ) : (
-                  <span className="material-symbols-outlined text-[26px]" style={isActive ? { fontVariationSettings: "'FILL' 1" } : {}}>{item.icon}</span>
+                  renderMobileIcon(item.name, isActive)
                 )}
                 {item.badge && item.badge > 0 ? (
-                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#ff3040] text-white text-[9px] font-bold rounded-full flex items-center justify-center">{item.badge}</span>
+                  <span className="absolute top-1 right-1.5 min-w-[16px] h-4 px-1 bg-[#ff3040] text-white text-[9px] font-bold rounded-full flex items-center justify-center border border-black">
+                    {item.badge}
+                  </span>
                 ) : null}
               </Link>
             );
