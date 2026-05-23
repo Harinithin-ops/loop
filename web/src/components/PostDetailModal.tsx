@@ -140,7 +140,7 @@ export default function PostDetailModal({
           {/* Header: author info + options */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-[#262626] flex-shrink-0">
             <div className="flex items-center gap-3 min-w-0">
-              <Link href={post.authorUsername ? `/user/${post.authorUsername}` : "#"}>
+              <Link href={post.authorUsername || post.authorId ? `/user/${post.authorUsername || post.authorId}` : "#"}>
                 <img
                   src={post.authorAvatar}
                   alt={post.authorName}
@@ -149,7 +149,7 @@ export default function PostDetailModal({
               </Link>
               <div className="min-w-0">
                 <Link
-                  href={post.authorUsername ? `/user/${post.authorUsername}` : "#"}
+                  href={post.authorUsername || post.authorId ? `/user/${post.authorUsername || post.authorId}` : "#"}
                   className="font-bold text-sm hover:underline hover:text-primary transition-colors block truncate"
                 >
                   {post.authorUsername || post.authorName}
@@ -204,7 +204,7 @@ export default function PostDetailModal({
               <div>
                 <p className="text-sm">
                   <Link
-                    href={post.authorUsername ? `/user/${post.authorUsername}` : "#"}
+                    href={post.authorUsername || post.authorId ? `/user/${post.authorUsername || post.authorId}` : "#"}
                     className="font-bold mr-2 hover:underline cursor-pointer"
                   >
                     {post.authorUsername}

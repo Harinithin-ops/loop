@@ -369,11 +369,11 @@ export default function Messages() {
                   </div>
 
                   <div className="flex items-center gap-3">
-                    <Link href={`/user/${req.senderUsername}`}>
+                    <Link href={`/user/${req.senderUsername || req.senderId}`}>
                       <img src={req.senderAvatar} alt={req.senderName} className="w-12 h-12 rounded-full object-cover border border-black/5" />
                     </Link>
                     <div className="flex-1 min-w-0">
-                      <Link href={`/user/${req.senderUsername}`} className="font-bold text-sm text-on-surface truncate block hover:text-primary">
+                      <Link href={`/user/${req.senderUsername || req.senderId}`} className="font-bold text-sm text-on-surface truncate block hover:text-primary">
                         {req.senderName}
                       </Link>
                       <p className="text-xs text-primary font-semibold">@{req.senderUsername}</p>
@@ -431,7 +431,7 @@ export default function Messages() {
                 <span className="material-symbols-outlined text-[24px]">arrow_back</span>
               </button>
 
-              <Link href={`/user/${activeChat.username}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+              <Link href={`/user/${activeChat.username || activeChat.id}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
                 <img className="w-10 h-10 rounded-full object-cover" src={activeChat.avatar} alt={activeChat.name} />
                 <div>
                   <h3 className="font-bold text-[15px] font-headline-sm leading-tight">{activeChat.name}</h3>

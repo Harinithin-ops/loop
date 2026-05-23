@@ -50,7 +50,7 @@ export default function ReelsScreen() {
         <LinearGradient colors={["transparent", "rgba(0,0,0,0.8)"]} style={styles.gradient} />
         {/* User info */}
         <View style={styles.bottomInfo}>
-          <TouchableOpacity style={styles.userRow} onPress={() => router.push(`/user/${item.userUsername}`)}>
+          <TouchableOpacity style={styles.userRow} onPress={() => router.push(`/user/${item.userUsername || item.userId}`)}>
             <Image source={{ uri: item.userAvatar }} style={styles.avatar} />
             <Text style={styles.username}>@{item.userUsername || item.userName}</Text>
           </TouchableOpacity>

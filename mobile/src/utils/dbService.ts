@@ -1,5 +1,18 @@
 import { supabase } from "./supabase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import Constants from "expo-constants";
+
+function getBaseApiUrl() {
+  if (!__DEV__) {
+    return "https://loop-hariraj1389-9205s-projects.vercel.app";
+  }
+  const hostUri = Constants.expoConfig?.hostUri;
+  if (hostUri) {
+    const ip = hostUri.split(":").shift();
+    return `http://${ip}:3005`;
+  }
+  return "http://localhost:3005";
+}
 
 // ===================== TYPES =====================
 export interface RealUser { id: string; email: string; fullName: string; username: string; avatar: string; bio: string; gmail?: string; }
@@ -177,8 +190,13 @@ export const dbService = {
   async getProfileByUsername(username: string): Promise<UserProfile | null> {
     let data = null;
     try {
-      const res = await supabase.from("profiles").select("*").ilike("username", username).maybeSingle();
-      data = res.data;
+      if (isValidUUID(username)) {
+        const res = await supabase.from("profiles").select("*").eq("id", username).maybeSingle();
+        data = res?.data;
+      } else {
+        const res = await supabase.from("profiles").select("*").ilike("username", username).maybeSingle();
+        data = res?.data;
+      }
     } catch {}
     if (!data) return null;
     const followerCount = await this.getFollowerCount(data.id);
@@ -192,7 +210,9 @@ export const dbService = {
     if (!query.trim()) return [];
     const clean = query.toLowerCase().replace("@", "").trim();
     const { data } = await supabase.from("profiles").select("*").or(`username.ilike.%${clean}%,full_name.ilike.%${clean}%`).limit(20);
-    return (data || []).map((p: any) => ({ id: p.id, fullName: p.full_name || p.username || "User", username: p.username || "", avatar: p.avatar_url || "https://ui-avatars.com/api/?name=User&background=4F6BFF&color=fff" }));
+    return (data || [])
+      .filter((p: any) => p.username && p.username.trim().length > 0)
+      .map((p: any) => ({ id: p.id, fullName: p.full_name || p.username || "User", username: p.username || "", avatar: p.avatar_url || "https://ui-avatars.com/api/?name=User&background=4F6BFF&color=fff" }));
   },
 
   // POSTS
@@ -327,6 +347,22 @@ export const dbService = {
     const filtered = local.filter(r => !(r.senderId === user.id && r.receiverId === targetUserId));
     filtered.push({ id: "local-" + generateUUID(), senderId: user.id, receiverId: targetUserId, status: "pending", createdAt: new Date().toISOString() });
     await saveLocalFollowRequests(filtered);
+    
+    try {
+      const res = await fetch(`${getBaseApiUrl()}/api/follow`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "send",
+          senderId: user.id,
+          receiverId: targetUserId
+        })
+      });
+      if (res.ok) return true;
+    } catch (e) {
+      console.warn("API follow request failed, using direct supabase:", e);
+    }
+
     try {
       await supabase.from("follow_requests").insert({ senderId: user.id, receiverId: targetUserId, status: "pending" });
     } catch {}
@@ -338,6 +374,22 @@ export const dbService = {
     if (!user) return false;
     const local = await getLocalFollowRequests();
     await saveLocalFollowRequests(local.filter(r => !(r.senderId === user.id && r.receiverId === targetUserId)));
+    
+    try {
+      const res = await fetch(`${getBaseApiUrl()}/api/follow`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "cancel",
+          senderId: user.id,
+          receiverId: targetUserId
+        })
+      });
+      if (res.ok) return true;
+    } catch (e) {
+      console.warn("API follow request cancel failed, using direct supabase:", e);
+    }
+
     try { await supabase.from("follow_requests").delete().eq("senderId", user.id).eq("receiverId", targetUserId); } catch {}
     return true;
   },
@@ -347,6 +399,22 @@ export const dbService = {
     if (!user) return false;
     const local = await getLocalFollowRequests();
     await saveLocalFollowRequests(local.filter(r => !(r.senderId === user.id && r.receiverId === targetUserId)));
+    
+    try {
+      const res = await fetch(`${getBaseApiUrl()}/api/follow`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "unfollow",
+          senderId: user.id,
+          receiverId: targetUserId
+        })
+      });
+      if (res.ok) return true;
+    } catch (e) {
+      console.warn("API unfollow failed, using direct supabase:", e);
+    }
+
     try { await supabase.from("follow_requests").delete().eq("senderId", user.id).eq("receiverId", targetUserId).eq("status", "accepted"); } catch {}
     return true;
   },
@@ -365,11 +433,39 @@ export const dbService = {
   },
 
   async acceptFollowRequest(requestId: string): Promise<boolean> {
+    try {
+      const res = await fetch(`${getBaseApiUrl()}/api/follow`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "accept",
+          requestId
+        })
+      });
+      if (res.ok) return true;
+    } catch (e) {
+      console.warn("API accept follow failed, using direct supabase:", e);
+    }
+
     try { await supabase.from("follow_requests").update({ status: "accepted" }).eq("id", requestId); } catch {}
     return true;
   },
 
   async rejectFollowRequest(requestId: string): Promise<boolean> {
+    try {
+      const res = await fetch(`${getBaseApiUrl()}/api/follow`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "reject",
+          requestId
+        })
+      });
+      if (res.ok) return true;
+    } catch (e) {
+      console.warn("API reject follow failed, using direct supabase:", e);
+    }
+
     try { await supabase.from("follow_requests").update({ status: "rejected" }).eq("id", requestId); } catch {}
     return true;
   },
@@ -385,28 +481,116 @@ export const dbService = {
       const chats: RealChat[] = [];
       for (const partnerId of chatUserIds) {
         const profile = await getProfile(partnerId as string);
-        const { data: msgs } = await supabase.from("messages").select("*").or(`and(senderId.eq.${user.id},receiverId.eq.${partnerId}),and(senderId.eq.${partnerId},receiverId.eq.${user.id})`).order("createdAt", { ascending: true }).limit(50);
-        const messages: RealMessage[] = (msgs || []).map((m: any) => ({ id: m.id, senderId: m.senderId, senderName: m.senderId === user.id ? user.fullName : profile.name, senderAvatar: m.senderId === user.id ? user.avatar : profile.avatar, text: m.content, createdAt: m.createdAt, isRead: m.isRead }));
-        const unread = messages.filter(m => !m.isRead && m.senderId !== user.id).length;
+        
+        let msgs = [];
+        
+        // Attempt 1: Direct client-side read from Supabase (Standalone APK / Direct DB mode)
+        try {
+          const { data: directMsgs, error } = await supabase
+            .from("messages")
+            .select("*")
+            .or(`and(senderId.eq.${user.id},receiverId.eq.${partnerId}),and(senderId.eq.${partnerId},receiverId.eq.${user.id})`)
+            .order("createdAt", { ascending: true })
+            .limit(50);
+          if (!error && directMsgs) {
+            msgs = directMsgs;
+          } else {
+            console.warn("Direct Supabase message fetch failed, attempting API fallback...", error?.message);
+            throw new Error(error?.message || "fetch failed");
+          }
+        } catch {
+          // Attempt 2: Fallback to local Next.js API server endpoint (Local Dev mode)
+          try {
+            const res = await fetch(`${getBaseApiUrl()}/api/messages`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                action: "get",
+                userId: user.id,
+                otherId: partnerId
+              })
+            });
+            if (res.ok) {
+              const body = await res.json();
+              msgs = body.messages || [];
+            } else {
+              console.warn("fetch chats API returned non-ok status:", res.status);
+            }
+          } catch (fetchErr) {
+            console.warn("Failed to fetch messages from API fallback:", fetchErr);
+          }
+        }
+
+        const messages: RealMessage[] = (msgs || []).map((m: any) => {
+          const senderId = m.senderId || m.sender_id || "";
+          const createdAt = m.createdAt || m.created_at || new Date().toISOString();
+          return {
+            id: m.id,
+            senderId: senderId,
+            senderName: senderId === user.id ? user.fullName : profile.name,
+            senderAvatar: senderId === user.id ? user.avatar : profile.avatar,
+            text: m.content,
+            createdAt: createdAt,
+            isRead: true
+          };
+        });
+        const unread = 0;
         chats.push({ id: partnerId as string, name: profile.name, username: profile.username, avatar: profile.avatar, messages, unreadCount: unread, lastMessageTime: messages[messages.length - 1]?.createdAt || new Date().toISOString() });
       }
       return chats.sort((a, b) => new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime());
-    } catch { return []; }
+    } catch (e) {
+      console.error("getChats error:", e);
+      return [];
+    }
   },
 
   async sendMessage(receiverId: string, content: string): Promise<boolean> {
     const user = await this.getActiveUser();
     if (!user) return false;
+    
+    // Attempt 1: Direct client-side insert to Supabase (Standalone APK / Direct DB mode)
     try {
-      await supabase.from("messages").insert({ id: generateUUID(), senderId: user.id, receiverId, content, isRead: false });
-      return true;
-    } catch { return false; }
+      const { error } = await supabase
+        .from("messages")
+        .insert({
+          senderId: user.id,
+          receiverId,
+          content
+        });
+      if (!error) {
+        return true;
+      }
+      console.warn("Direct Supabase message insert failed, attempting API fallback...", error.message);
+    } catch (e) {
+      console.warn("Direct Supabase insert exception, attempting API fallback...", e);
+    }
+
+    // Attempt 2: Fallback to local Next.js API server endpoint (Local Dev mode with service-role bypass)
+    try {
+      const res = await fetch(`${getBaseApiUrl()}/api/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "send",
+          senderId: user.id,
+          receiverId: receiverId,
+          content
+        })
+      });
+      if (res.ok) {
+        return true;
+      }
+      const errText = await res.text();
+      console.warn("sendMessage API fallback returned error:", errText);
+      return false;
+    } catch (e) {
+      console.error("sendMessage exception calling API fallback:", e);
+      return false;
+    }
   },
 
   async markMessagesAsRead(partnerId: string): Promise<void> {
-    const user = await this.getActiveUser();
-    if (!user) return;
-    try { await supabase.from("messages").update({ isRead: true }).eq("senderId", partnerId).eq("receiverId", user.id).eq("isRead", false); } catch {}
+    // No operation needed since there is no isRead or is_read column in the database table messages
   },
 
   // NOTIFICATIONS

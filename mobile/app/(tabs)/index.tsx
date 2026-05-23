@@ -58,7 +58,7 @@ export default function HomeScreen() {
 
   const renderPost = ({ item }: { item: RealPost }) => (
     <View style={styles.postCard}>
-      <TouchableOpacity style={styles.postHeader} onPress={() => router.push(`/user/${item.authorUsername}`)}>
+      <TouchableOpacity style={styles.postHeader} onPress={() => router.push(`/user/${item.authorUsername || item.authorId}`)}>
         <Image source={{ uri: item.authorAvatar }} style={styles.postAvatar} />
         <View style={{ flex: 1 }}>
           <Text style={styles.postAuthor}>{item.authorName}</Text>

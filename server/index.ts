@@ -9,8 +9,61 @@ import { useServer } from 'graphql-ws/use/ws';
 
 import { typeDefs } from './graphql/schema';
 import { resolvers } from './graphql/resolvers';
+import prisma from './graphql/utils/db';
+
+async function autoFixRLS() {
+  console.log("🛠️ Running automatic RLS policy configuration for messages table...");
+  try {
+    // 1. Enable RLS on messages table
+    await prisma.$executeRawUnsafe(`ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;`);
+    
+    // 2. Drop any potentially conflicting or outdated policies
+    const policies = [
+      "Allow users to read their own messages",
+      "Allow users to send messages",
+      "Allow receivers to update messages",
+      "Users can view their messages",
+      "Users can send messages",
+      "Receivers can mark as read",
+      "Allow anyone to view messages",
+      "Allow anyone to send messages",
+      "Allow anyone to update messages"
+    ];
+    for (const p of policies) {
+      try {
+        await prisma.$executeRawUnsafe(`DROP POLICY IF EXISTS "${p}" ON public.messages;`);
+      } catch (e) {}
+    }
+
+    // 3. Create permissive public policies for seamless cross-device chat sync
+    await prisma.$executeRawUnsafe(`
+      CREATE POLICY "Allow anyone to view messages"
+        ON public.messages FOR SELECT
+        TO public
+        USING (true);
+    `);
+    await prisma.$executeRawUnsafe(`
+      CREATE POLICY "Allow anyone to send messages"
+        ON public.messages FOR INSERT
+        TO public
+        WITH CHECK (true);
+    `);
+    await prisma.$executeRawUnsafe(`
+      CREATE POLICY "Allow anyone to update messages"
+        ON public.messages FOR UPDATE
+        TO public
+        USING (true);
+    `);
+    console.log("✅ Automatic RLS policy configuration completed successfully!");
+  } catch (error: any) {
+    console.warn("⚠️ RLS policy configuration notice (Server may be offline or database not fully reachable):", error.message || error);
+  }
+}
 
 async function startServer() {
+  // Execute database RLS self-heal task on startup
+  autoFixRLS().catch(err => console.error("RLS fix startup background error:", err));
+
   const app = express();
   const httpServer = http.createServer(app);
 

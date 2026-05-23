@@ -36,7 +36,7 @@ export default function ExploreScreen() {
   const displayList = query.trim() ? results : recent;
 
   const renderUser = ({ item }: { item: UserResult }) => (
-    <TouchableOpacity style={styles.userCard} onPress={() => { Keyboard.dismiss(); router.push(`/user/${item.username}`); }}>
+    <TouchableOpacity style={styles.userCard} onPress={() => { Keyboard.dismiss(); router.push(`/user/${item.username || item.id}`); }}>
       <Image source={{ uri: item.avatar }} style={styles.avatar} />
       <View style={{ flex: 1 }}>
         <Text style={styles.name}>{item.fullName}</Text>

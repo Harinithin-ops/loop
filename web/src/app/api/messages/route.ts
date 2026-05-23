@@ -24,8 +24,8 @@ export async function POST(req: NextRequest) {
       const { data, error } = await supabaseAdmin
         .from("messages")
         .insert({
-          senderId,
-          receiverId,
+          senderId: senderId,
+          receiverId: receiverId,
           content
         })
         .select()

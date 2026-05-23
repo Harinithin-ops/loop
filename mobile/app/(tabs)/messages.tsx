@@ -57,7 +57,7 @@ export default function MessagesScreen() {
       <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
         <View style={styles.chatHeader}>
           <TouchableOpacity onPress={() => setSelectedChat(null)} style={{ padding: 8 }}><Text style={{ fontSize: 22 }}>←</Text></TouchableOpacity>
-          <TouchableOpacity style={{ flexDirection: "row", alignItems: "center", flex: 1 }} onPress={() => router.push(`/user/${selectedChat.username}`)}>
+          <TouchableOpacity style={{ flexDirection: "row", alignItems: "center", flex: 1 }} onPress={() => router.push(`/user/${selectedChat.username || selectedChat.id}`)}>
             <Image source={{ uri: selectedChat.avatar }} style={styles.chatAvatar} />
             <View>
               <Text style={styles.chatName}>{selectedChat.name}</Text>
@@ -138,7 +138,7 @@ export default function MessagesScreen() {
         <FlatList data={requests} keyExtractor={r => r.id}
           renderItem={({ item: r }) => (
             <View style={styles.reqCard}>
-              <TouchableOpacity onPress={() => router.push(`/user/${r.senderUsername}`)}>
+              <TouchableOpacity onPress={() => router.push(`/user/${r.senderUsername || r.senderId}`)}>
                 <Image source={{ uri: r.senderAvatar }} style={styles.reqAvatar} />
               </TouchableOpacity>
               <View style={{ flex: 1 }}>

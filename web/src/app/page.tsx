@@ -247,7 +247,7 @@ export default function HomeFeed() {
                 {/* Header */}
                 <div className="flex justify-between items-center p-4">
                   <div className="flex items-center gap-3">
-                    <Link href={post.authorUsername ? `/user/${post.authorUsername}` : "#"}>
+                    <Link href={post.authorUsername || post.authorId ? `/user/${post.authorUsername || post.authorId}` : "#"}>
                       <img
                         className="w-10 h-10 rounded-full object-cover border border-primary/20 hover:ring-2 hover:ring-primary/30 transition-all"
                         src={post.authorAvatar}
@@ -257,7 +257,7 @@ export default function HomeFeed() {
                     <div className="text-left">
                       <div className="flex items-center gap-1.5 font-sans">
                         <Link
-                          href={post.authorUsername ? `/user/${post.authorUsername}` : "#"}
+                          href={post.authorUsername || post.authorId ? `/user/${post.authorUsername || post.authorId}` : "#"}
                           className="font-bold text-[14px] hover:text-primary transition-colors leading-none"
                         >
                           {post.authorUsername || "user"}
@@ -345,7 +345,7 @@ export default function HomeFeed() {
                           Go to post
                         </button>
                         <button
-                          onClick={() => { setOpenMenuPostId(null); window.location.href = post.authorUsername ? `/user/${post.authorUsername}` : "#"; }}
+                          onClick={() => { setOpenMenuPostId(null); window.location.href = post.authorUsername || post.authorId ? `/user/${post.authorUsername || post.authorId}` : "#"; }}
                           className="w-full px-4 py-3.5 text-center text-[15px] font-medium text-on-surface hover:bg-white/5 active:bg-white/10 transition-colors border-b border-white/10"
                         >
                           About this account

@@ -508,14 +508,14 @@ export default function Navbar({ children }: { children: React.ReactNode }) {
                 notifications.map((n) => (
                   <div key={n.id} className="flex gap-3 items-start text-sm border-b border-[#1a1a1a] pb-3 last:border-0">
                     {/* User Avatar */}
-                    <Link href={`/user/${n.senderUsername}`} onClick={() => setShowNotifications(false)} className="flex-shrink-0">
+                    <Link href={`/user/${n.senderUsername || n.senderId}`} onClick={() => setShowNotifications(false)} className="flex-shrink-0">
                       <img src={n.senderAvatar || "/images/avatar_marcus_1779191788520.png"} alt="" className="w-10 h-10 rounded-full object-cover border border-[#262626]" />
                     </Link>
 
                     {/* Content */}
                     <div className="flex-1 min-w-0">
                       <p className="text-white text-xs leading-normal">
-                        <Link href={`/user/${n.senderUsername}`} onClick={() => setShowNotifications(false)} className="font-bold hover:text-primary transition-colors mr-1">
+                        <Link href={`/user/${n.senderUsername || n.senderId}`} onClick={() => setShowNotifications(false)} className="font-bold hover:text-primary transition-colors mr-1">
                           @{n.senderUsername || n.senderName}
                         </Link>
                         {n.type === "follow_request" && "sent you a follow request."}
