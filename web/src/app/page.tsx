@@ -211,31 +211,31 @@ export default function HomeFeed() {
 
   return (
     <div className="pt-20 pb-32 md:py-0 space-y-8 max-w-2xl mx-auto">
-      {/* Stories Row */}
-      <section className="overflow-hidden">
-        <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar scroll-smooth">
-          {/* Add Story Action */}
+      {/* Pulse Stories Row */}
+      <section className="overflow-hidden bg-black/30 backdrop-blur-md p-4 rounded-2xl border border-primary/10 shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
+        <div className="flex gap-4 overflow-x-auto pb-2 no-scrollbar scroll-smooth">
+          {/* Add Pulse Story Action */}
           <div 
             onClick={() => window.dispatchEvent(new Event("loop_open_create_story"))}
-            className="flex-shrink-0 flex flex-col items-center gap-2 cursor-pointer"
+            className="flex-shrink-0 flex flex-col items-center gap-2 cursor-pointer group"
           >
-            <div className="w-[72px] h-[72px] rounded-full p-[2.5px] neumorphic-card flex items-center justify-center bg-surface-container-lowest border border-white/60 hover:scale-105 transition-transform duration-200">
-              <div className="w-full h-full rounded-full bg-surface-container-high flex items-center justify-center text-primary">
+            <div className="w-[72px] h-[72px] rounded-full p-[2px] bg-black border border-primary/30 shadow-[0_0_10px_rgba(107,255,87,0.1)] hover:border-primary hover:shadow-[0_0_15px_rgba(107,255,87,0.3)] transition-all duration-300 flex items-center justify-center">
+              <div className="w-full h-full rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:scale-105 transition-transform">
                 <span className="material-symbols-outlined text-[24px]">add</span>
               </div>
             </div>
-            <span className="font-label-caps text-[11px] text-on-surface-variant font-semibold">Add Story</span>
+            <span className="font-sans text-[10px] text-primary/80 font-bold uppercase tracking-wider">Live Pulse</span>
           </div>
 
-          {/* Active stories rendering */}
+          {/* Active pulse stories rendering */}
           {stories.map((story) => (
             <div
               key={story.id}
               onClick={() => setActiveStory(story)}
               className="flex-shrink-0 flex flex-col items-center gap-2 cursor-pointer group"
             >
-              <div className="story-gradient w-[72px] h-[72px] rounded-full flex items-center justify-center group-hover:scale-105 transition-transform duration-200">
-                <div className="w-full h-full rounded-full border-2 border-surface-container-lowest overflow-hidden">
+              <div className="story-gradient w-[72px] h-[72px] rounded-full flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
+                <div className="w-full h-full rounded-full border-2 border-background overflow-hidden">
                   <img
                     className="w-full h-full object-cover"
                     src={story.userAvatar}
@@ -243,7 +243,7 @@ export default function HomeFeed() {
                   />
                 </div>
               </div>
-              <span className="font-label-caps text-[11px] text-on-surface-variant truncate w-14 text-center">
+              <span className="font-sans text-[10px] text-on-surface-variant group-hover:text-primary transition-colors truncate w-14 text-center tracking-tight">
                 {story.userName}
               </span>
             </div>
@@ -293,17 +293,19 @@ export default function HomeFeed() {
             return (
               <div
                 key={post.id}
-                className="bg-surface-container-lowest rounded-xl border border-white/20 shadow-md text-on-surface overflow-hidden flex flex-col relative transition-transform duration-300"
+                className="glass-panel neumorphic-card rounded-2xl border border-primary/10 text-on-surface overflow-hidden flex flex-col relative transition-all duration-300"
               >
                 {/* Header */}
                 <div className="flex justify-between items-center p-4">
                   <div className="flex items-center gap-3">
-                    <Link href={post.authorUsername || post.authorId ? `/user/${post.authorUsername || post.authorId}` : "#"}>
-                      <img
-                        className="w-10 h-10 rounded-full object-cover border border-primary/20 hover:ring-2 hover:ring-primary/30 transition-all"
-                        src={post.authorAvatar}
-                        alt={post.authorName}
-                      />
+                    <Link href={post.authorUsername || post.authorId ? `/user/${post.authorUsername || post.authorId}` : "#"} className="relative">
+                      <div className="w-10 h-10 rounded-full p-[1.5px] bg-primary/20 hover:bg-primary transition-all duration-300">
+                        <img
+                          className="w-full h-full rounded-full object-cover border border-background"
+                          src={post.authorAvatar}
+                          alt={post.authorName}
+                        />
+                      </div>
                     </Link>
                     <div className="text-left">
                       <div className="flex items-center gap-1.5 font-sans">
@@ -444,13 +446,14 @@ export default function HomeFeed() {
                 {/* Visual Attachment */}
                 <div
                   onClick={() => setActivePost(post)}
-                  className="w-full overflow-hidden relative cursor-pointer group bg-black select-none aspect-square md:aspect-[4/5] flex items-center justify-center"
+                  className="w-full overflow-hidden relative cursor-pointer group bg-black select-none aspect-square md:aspect-[4/5] flex items-center justify-center border-y border-primary/5"
                 >
                   <img
-                    className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500"
+                    className="w-full h-full object-cover group-hover:scale-[1.01] transition-transform duration-700"
                     src={post.imageUrl}
                     alt="Post Media"
                   />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
                 </div>
 
                 {/* Actions & Reactions Row */}
@@ -535,16 +538,16 @@ export default function HomeFeed() {
                   {/* AI Suggestions Toggle Button */}
                   <div className="pt-2">
                     <details className="group">
-                      <summary className="list-none flex items-center gap-1 text-[11px] font-bold text-primary uppercase tracking-wider cursor-pointer hover:underline font-label-caps select-none">
+                      <summary className="list-none flex items-center gap-1 text-[10px] font-bold text-primary uppercase tracking-widest cursor-pointer hover:underline font-label-caps select-none">
                         <span className="material-symbols-outlined text-[14px]">magic_button</span>
                         AI Caption Studio
                         <span className="material-symbols-outlined text-[14px] transition-transform group-open:rotate-180">
                           expand_more
                         </span>
                       </summary>
-                      <div className="mt-2 p-3 rounded-lg bg-surface-container-low/50 border border-primary/10 space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
-                        <p className="text-[10px] text-on-surface-variant">
-                          Click a suggestion to apply it to your post caption:
+                      <div className="mt-2.5 p-3 rounded-xl bg-black/60 border border-primary/15 space-y-2 animate-in fade-in slide-in-from-top-1 duration-200 shadow-inner">
+                        <p className="text-[10px] text-white/50">
+                          Tap an AI suggestion to apply it to your post caption:
                         </p>
                         <div className="flex flex-wrap gap-2">
                           {[
@@ -555,7 +558,7 @@ export default function HomeFeed() {
                             <button
                               key={idx}
                               onClick={() => handleApplyCaption(post.id, suggestion)}
-                              className="px-3 py-1.5 rounded-full bg-white/60 text-[11px] text-primary border border-primary/20 hover:bg-primary/10 active:scale-95 transition-all font-sans"
+                              className="px-3 py-1.5 rounded-full bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 hover:border-primary active:scale-95 transition-all text-[11px] font-semibold tracking-wide font-sans shadow-[0_0_10px_rgba(107,255,87,0.05)]"
                             >
                               &ldquo;{suggestion}&rdquo;
                             </button>
@@ -574,32 +577,33 @@ export default function HomeFeed() {
       {/* Floating AI Command Trigger */}
       <button
         onClick={() => setAiAssistantOpen(!aiAssistantOpen)}
-        className="fixed bottom-24 right-8 md:bottom-8 md:right-8 w-16 h-16 bg-primary text-white rounded-full flex items-center justify-center shadow-2xl shadow-primary/40 z-50 hover:scale-105 active:scale-95 transition-transform overflow-hidden ai-shimmer"
+        aria-label="Open AI assistant"
+        className="fixed bottom-24 right-6 md:bottom-8 md:right-8 w-14 h-14 bg-primary text-black rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(107,255,87,0.4)] z-50 hover:scale-105 active:scale-95 transition-transform overflow-hidden ai-shimmer"
       >
-        <span className="material-symbols-outlined text-[36px]">auto_awesome</span>
+        <span className="material-symbols-outlined text-[28px] font-bold">auto_awesome</span>
       </button>
 
-      {/* AI Assistant Chat Modal */}
+      {/* AI Assistant Chat Drawer */}
       {aiAssistantOpen && (
-        <div className="fixed bottom-44 right-8 md:bottom-28 md:right-8 w-80 max-h-96 glass-panel border border-white/50 shadow-2xl rounded-lg p-4 z-50 flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-300">
-          <div className="flex justify-between items-center pb-2 border-b border-black/5">
+        <div className="fixed bottom-[96px] right-4 left-4 md:left-auto md:bottom-28 md:right-8 w-auto md:w-80 h-96 glass-panel border border-primary/20 shadow-[0_15px_40px_rgba(0,0,0,0.8),_0_0_25px_rgba(107,255,87,0.08)] rounded-2xl p-4 z-50 flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <div className="flex justify-between items-center pb-2.5 border-b border-primary/10">
             <div className="flex items-center gap-2">
               <span className="material-symbols-outlined text-primary text-[20px] animate-pulse">smart_toy</span>
-              <span className="font-bold text-[13px] font-label-caps text-on-surface">Loop AI Partner</span>
+              <span className="font-bold text-[13px] tracking-wider text-primary uppercase font-sans">Loop AI Partner</span>
             </div>
-            <button onClick={() => setAiAssistantOpen(false)} className="material-symbols-outlined text-outline hover:text-primary text-[18px]">
+            <button onClick={() => setAiAssistantOpen(false)} className="material-symbols-outlined text-white/50 hover:text-primary text-[18px] transition-colors">
               close
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto py-3 space-y-3 no-scrollbar max-h-60">
+          <div className="flex-1 overflow-y-auto py-3 space-y-3 no-scrollbar pr-0.5">
             {aiMessages.map((msg, index) => (
               <div
                 key={index}
-                className={`max-w-[80%] rounded-lg p-2.5 text-[12px] leading-relaxed ${
+                className={`max-w-[85%] rounded-2xl p-3 text-[12px] leading-relaxed shadow-sm ${
                   msg.sender === "user"
-                    ? "bg-primary text-white self-end ml-auto"
-                    : "bg-surface-container-high/60 border border-black/5 text-on-surface self-start"
+                    ? "bg-primary text-black font-semibold self-end ml-auto"
+                    : "bg-black/40 border border-primary/10 text-white/90 self-start"
                 }`}
               >
                 {msg.text}
@@ -607,19 +611,19 @@ export default function HomeFeed() {
             ))}
           </div>
 
-          <form onSubmit={sendAiCommand} className="flex gap-2 pt-2 border-t border-black/5 mt-auto">
+          <form onSubmit={sendAiCommand} className="flex gap-2 pt-2 border-t border-primary/10 mt-auto">
             <input
               type="text"
               value={aiCommandText}
               onChange={(e) => setAiCommandText(e.target.value)}
               placeholder="Ask Loop AI..."
-              className="flex-1 text-[12px] bg-white/60 border border-black/5 rounded-full px-3 py-2 outline-none focus:ring-1 focus:ring-primary focus:border-transparent font-sans"
+              className="flex-1 text-[12.5px] bg-black/60 border border-primary/20 rounded-full px-4 py-2.5 text-white placeholder:text-white/30 outline-none focus:ring-1 focus:ring-primary focus:border-transparent font-sans shadow-inner"
             />
             <button
               type="submit"
-              className="bg-primary text-white w-8 h-8 rounded-full flex items-center justify-center hover:bg-primary-container active:scale-95 transition-all flex-shrink-0"
+              className="bg-primary text-black w-9 h-9 rounded-full flex items-center justify-center hover:bg-primary-container active:scale-95 transition-all flex-shrink-0 shadow-lg"
             >
-              <span className="material-symbols-outlined text-[16px]">send</span>
+              <span className="material-symbols-outlined text-[16px] font-bold">send</span>
             </button>
           </form>
         </div>
@@ -639,13 +643,13 @@ export default function HomeFeed() {
             </button>
 
             {/* Story Card Container */}
-            <div className="w-full max-w-md bg-black rounded-3xl border border-white/10 shadow-2xl relative overflow-hidden flex flex-col h-full">
+            <div className="w-full max-w-md bg-[#050505] rounded-3xl border border-primary/25 shadow-[0_0_30px_rgba(107,255,87,0.15)] relative overflow-hidden flex flex-col h-full">
               
               {/* Progress Bars */}
               <div className="absolute top-4 left-4 right-4 flex gap-1 z-30">
-                <div className="h-1 flex-1 bg-white/30 rounded-full overflow-hidden">
+                <div className="h-1 flex-1 bg-white/20 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-white transition-all duration-100"
+                    className="h-full bg-primary shadow-[0_0_8px_rgba(107,255,87,0.8)] transition-all duration-100"
                     style={{ width: `${storyProgress}%` }}
                   />
                 </div>

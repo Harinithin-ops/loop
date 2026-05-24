@@ -117,7 +117,7 @@ export default function ExploreSearch() {
     <div className="pt-20 pb-32 md:py-0 max-w-2xl mx-auto space-y-6">
       {/* Search Bar */}
       <div className="relative">
-        <div className="search-glow neumorphic-inset flex items-center bg-white/60 rounded-full px-5 py-3.5 border border-primary/10 transition-shadow focus-within:shadow-[0_0_25px_rgba(42,73,223,0.25)]">
+        <div className="search-glow neumorphic-inset flex items-center bg-black/60 rounded-full px-5 py-3.5 border border-primary/20 transition-all focus-within:shadow-[0_0_25px_rgba(107,255,87,0.25)] focus-within:border-primary/50">
           <span className="material-symbols-outlined text-primary mr-3 text-[22px]">
             search
           </span>
@@ -127,7 +127,7 @@ export default function ExploreSearch() {
             onChange={(e) => setSearchQuery(e.target.value)}
             onFocus={() => searchQuery.trim() && setShowResults(true)}
             placeholder="Search users by name or @username..."
-            className="bg-transparent border-none outline-none focus:ring-0 w-full font-sans text-on-surface text-[15px] p-0 placeholder:text-outline-variant"
+            className="bg-transparent border-none outline-none focus:ring-0 w-full font-sans text-white text-[15px] p-0 placeholder:text-white/30"
           />
           {searchQuery && (
             <button
@@ -135,7 +135,7 @@ export default function ExploreSearch() {
                 setSearchQuery("");
                 setShowResults(false);
               }}
-              className="material-symbols-outlined text-outline-variant hover:text-primary text-[20px]"
+              className="material-symbols-outlined text-white/40 hover:text-primary text-[20px] transition-colors"
             >
               close
             </button>
@@ -204,16 +204,15 @@ export default function ExploreSearch() {
         />
       )}
 
-      {/* Categories */}
       <div className="flex overflow-x-auto gap-3 pb-2 no-scrollbar">
         {categories.map((cat) => (
           <button
             key={cat}
             onClick={() => setActiveCategory(cat)}
-            className={`glass-panel px-6 py-2 rounded-full font-label-caps text-label-caps whitespace-nowrap active:scale-95 transition-all ${
+            className={`glass-panel px-6 py-2 rounded-full font-sans text-[11px] font-bold tracking-widest whitespace-nowrap active:scale-95 transition-all ${
               activeCategory === cat
-                ? "bg-primary/10 border-primary/40 text-primary shadow-[0_0_15px_rgba(42,73,223,0.1)] active-glow"
-                : "text-on-surface-variant hover:bg-white/40 border-white/20"
+                ? "bg-primary/15 border-primary/40 text-primary shadow-[0_0_15px_rgba(107,255,87,0.2)] active-glow"
+                : "text-on-surface-variant hover:bg-white/10 hover:text-white border-primary/10"
             }`}
           >
             {cat}
@@ -240,9 +239,9 @@ export default function ExploreSearch() {
               <Link
                 key={u.id}
                 href={`/user/${u.username || u.id}`}
-                className="flex flex-col items-center gap-2 min-w-[75px] cursor-pointer group"
+                className="flex flex-col items-center gap-2.5 min-w-[80px] cursor-pointer group"
               >
-                <div className="w-16 h-16 rounded-full story-border p-0.5 overflow-hidden group-hover:scale-105 active:scale-90 transition-transform relative bg-white shadow-md">
+                <div className="w-16 h-16 rounded-full story-gradient p-[2px] overflow-hidden group-hover:scale-105 active:scale-90 transition-transform relative bg-black shadow-lg">
                   <img
                     src={u.avatar}
                     alt={u.fullName}
@@ -250,12 +249,12 @@ export default function ExploreSearch() {
                   />
                 </div>
                 <div className="flex flex-col items-center text-center">
-                  <span className="font-bold text-[10px] text-on-surface tracking-tighter truncate w-16">
+                  <span className="font-bold text-[10px] text-white truncate w-16">
                     {u.fullName}
                   </span>
                   {u.username && (
-                    <span className="text-[8px] text-primary font-bold font-label-caps tracking-widest leading-none mt-0.5">
-                      @{u.username.toUpperCase()}
+                    <span className="text-[8.5px] text-primary font-bold tracking-widest font-sans uppercase leading-none mt-0.5">
+                      @{u.username}
                     </span>
                   )}
                 </div>
@@ -315,13 +314,13 @@ export default function ExploreSearch() {
               <Link
                 key={item.id}
                 href={`/user/${item.authorUsername || item.authorId}`}
-                className="masonry-item glass-panel rounded-lg overflow-hidden flex flex-col relative shadow-md border-white/40 cursor-pointer"
+                className="masonry-item glass-panel rounded-2xl overflow-hidden flex flex-col relative border border-primary/10 shadow-[0_4px_25px_rgba(0,0,0,0.6)] cursor-pointer"
               >
                 {item.trending && (
-                  <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2 py-1 glass-panel rounded-full z-10 border-white/40">
+                  <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 bg-black/60 backdrop-blur-md rounded-full z-10 border border-primary/20 shadow-lg">
                     <div className="w-1.5 h-1.5 rounded-full bg-error animate-ping"></div>
-                    <span className="text-[9px] font-label-caps text-on-surface font-bold">
-                      TRENDING NOW
+                    <span className="text-[9px] font-sans font-bold text-white uppercase tracking-wider">
+                      TRENDING
                     </span>
                   </div>
                 )}
@@ -330,14 +329,14 @@ export default function ExploreSearch() {
                   src={item.image}
                   alt="Explore media"
                 />
-                <div className="p-3 bg-white/40 backdrop-blur-md flex items-center justify-between border-t border-white/20">
+                <div className="p-3 bg-black/60 backdrop-blur-md flex items-center justify-between border-t border-primary/10">
                   <div className="flex items-center gap-2">
                     <img
-                      className="w-5 h-5 rounded-full"
+                      className="w-5 h-5 rounded-full object-cover"
                       src={item.avatar}
                       alt={item.authorName}
                     />
-                    <span className="font-label-caps text-[10px] text-on-surface-variant font-semibold truncate w-24">
+                    <span className="font-sans text-[10px] text-white/80 font-semibold truncate w-24">
                       @{item.authorUsername || item.authorName}
                     </span>
                   </div>

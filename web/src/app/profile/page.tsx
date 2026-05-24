@@ -195,14 +195,14 @@ export default function CreatorProfile() {
         </div>
       )}
 
-      {/* ===== INSTAGRAM-STYLE PROFILE HEADER ===== */}
-      <section className="px-4 pt-4 pb-2">
+      {/* ===== Futurist Cyber-Loop Profile Page ===== */}
+      <section className="px-4 pt-4 pb-2 text-left">
         {/* Row: Avatar | Stats */}
         <div className="flex items-center gap-6">
           {/* Avatar */}
           <div className="flex-shrink-0">
-            <div className="w-20 h-20 md:w-24 md:h-24 rounded-full p-1 border-2 border-primary/20 bg-surface-container-low">
-              <div className="w-full h-full rounded-full border-[3px] border-surface-container-lowest overflow-hidden bg-white">
+            <div className="w-20 h-20 md:w-24 md:h-24 rounded-full p-[2px] bg-primary/20 shadow-[0_0_15px_rgba(107,255,87,0.2)]">
+              <div className="w-full h-full rounded-full border-2 border-background overflow-hidden bg-black">
                 <img src={currentUser.avatar} alt={currentUser.fullName} className="w-full h-full object-cover" />
               </div>
             </div>
@@ -212,145 +212,152 @@ export default function CreatorProfile() {
           <div className="flex-1">
             {/* Username row */}
             <div className="flex items-center gap-2 mb-2">
-              <h1 className="font-bold text-xl text-on-surface tracking-tight">{currentUser.username || currentUser.email.split("@")[0]}</h1>
-              <span className="material-symbols-outlined text-primary text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
+              <h1 className="font-bold text-xl text-white tracking-tight">@{currentUser.username || currentUser.email.split("@")[0]}</h1>
+              <span className="material-symbols-outlined text-primary text-[18px] filter drop-shadow-[0_0_8px_rgba(107,255,87,0.6)]" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
             </div>
 
             {/* Stats: posts / followers / following */}
             <div className="flex gap-6">
-              <div className="text-center"><p className="font-bold text-lg text-on-surface leading-tight">{userPosts.length}</p><p className="text-[11px] text-on-surface-variant">posts</p></div>
-              <div className="text-center"><p className="font-bold text-lg text-on-surface leading-tight">{followerCount}</p><p className="text-[11px] text-on-surface-variant">followers</p></div>
-              <div className="text-center"><p className="font-bold text-lg text-on-surface leading-tight">{followingCount}</p><p className="text-[11px] text-on-surface-variant">following</p></div>
+              <div className="text-center"><p className="font-bold text-lg text-white leading-tight">{userPosts.length}</p><p className="text-[10px] text-white/50 uppercase tracking-widest font-sans font-semibold">posts</p></div>
+              <div className="text-center"><p className="font-bold text-lg text-white leading-tight">{followerCount}</p><p className="text-[10px] text-white/50 uppercase tracking-widest font-sans font-semibold">followers</p></div>
+              <div className="text-center"><p className="font-bold text-lg text-white leading-tight">{followingCount}</p><p className="text-[10px] text-white/50 uppercase tracking-widest font-sans font-semibold">following</p></div>
             </div>
           </div>
         </div>
 
         {/* Name & Bio */}
-        <div className="mt-3 space-y-1">
-          <p className="font-bold text-sm text-on-surface">{currentUser.fullName}</p>
-          {currentUser.bio && <p className="text-sm text-on-surface-variant leading-snug whitespace-pre-line">{currentUser.bio}</p>}
+        <div className="mt-4 space-y-1">
+          <p className="font-bold text-sm text-white">{currentUser.fullName}</p>
+          {currentUser.bio && <p className="text-sm text-white/70 leading-relaxed font-sans">{currentUser.bio}</p>}
         </div>
 
         {/* Edit Profile + Settings Buttons */}
-        <div className="flex gap-2 mt-4">
+        <div className="flex gap-2 mt-5">
           <button onClick={() => { setEditName(currentUser.fullName); setEditUsername(currentUser.username || ""); setEditBio(currentUser.bio || ""); setEditAvatar(currentUser.avatar); setEditError(""); setShowEditModal(true); }}
-            className="flex-1 py-2 rounded-lg bg-surface-container border border-black/10 font-bold text-sm text-on-surface active:scale-[0.97] transition-all hover:bg-surface-container-high">
+            className="flex-1 py-2 rounded-xl bg-primary/10 border border-primary/20 font-bold text-xs uppercase tracking-wider text-primary active:scale-[0.97] transition-all hover:bg-primary/20 shadow-[0_0_10px_rgba(107,255,87,0.05)]">
             Edit profile
           </button>
           <button onClick={handleSignOut}
-            className="flex-1 py-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 font-bold text-sm text-red-600 active:scale-[0.97] transition-all flex items-center justify-center gap-1.5">
-            <span className="material-symbols-outlined text-[18px]">logout</span>
+            className="flex-1 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 font-bold text-xs uppercase tracking-wider text-red-500 active:scale-[0.97] transition-all flex items-center justify-center gap-1.5">
+            <span className="material-symbols-outlined text-[16px]">logout</span>
             Log out
           </button>
           <button onClick={() => setShowSettingsModal(true)}
-            className="w-10 py-2 rounded-lg bg-surface-container border border-black/10 flex items-center justify-center active:scale-[0.97] transition-all hover:bg-surface-container-high"
+            className="w-10 py-2 rounded-xl bg-black/60 border border-primary/20 flex items-center justify-center active:scale-[0.97] transition-all hover:bg-primary/10 text-primary"
             title="Settings"
           >
-            <span className="material-symbols-outlined text-on-surface text-[20px]">settings</span>
+            <span className="material-symbols-outlined text-[20px]">settings</span>
           </button>
         </div>
       </section>
 
       {/* Story Highlights */}
-      <section className="px-4 py-4 border-b border-surface-variant/50">
+      <section className="px-4 py-4 border-b border-primary/10">
         <div className="flex gap-4 overflow-x-auto no-scrollbar">
           <div className="flex flex-col items-center gap-1 min-w-[64px]">
-            <div className="w-16 h-16 rounded-full border-2 border-surface-variant flex items-center justify-center bg-surface-container-low">
-              <span className="material-symbols-outlined text-on-surface-variant text-[28px]">add</span>
+            <div className="w-14 h-14 rounded-full border border-primary/20 flex items-center justify-center bg-black/40 hover:border-primary transition-colors cursor-pointer group">
+              <span className="material-symbols-outlined text-primary text-[24px] group-hover:scale-110 transition-transform">add</span>
             </div>
-            <span className="text-[11px] text-on-surface-variant">New</span>
+            <span className="text-[10px] text-white/50 font-sans tracking-wide">New Highlight</span>
           </div>
         </div>
       </section>
 
       {/* Tab Bar with Icons */}
-      <div className="flex border-b border-surface-variant/50">
+      <div className="flex border-b border-primary/10 bg-black/20">
         {(["posts", "reels", "saved"] as const).map(tab => (
           <button key={tab} type="button" onClick={() => setActiveTab(tab)}
-            className={`flex-1 py-3 flex items-center justify-center border-b-2 active:scale-95 transition-all ${activeTab === tab ? "text-primary border-primary" : "text-outline-variant border-transparent"}`}>
+            className={`flex-1 py-3 flex items-center justify-center border-b-2 active:scale-95 transition-all ${activeTab === tab ? "text-primary border-primary shadow-[0_4px_15px_rgba(107,255,87,0.05)]" : "text-white/40 border-transparent hover:text-white/80"}`}>
             <span className="material-symbols-outlined text-[22px]" style={activeTab === tab ? { fontVariationSettings: "'FILL' 1" } : {}}>{tabIcons[tab]}</span>
           </button>
         ))}
       </div>
 
       {/* Media Grid */}
-      <div className="grid grid-cols-3 gap-[2px]">
+      <div className="grid grid-cols-3 gap-[2px] pt-1">
         {gridItems.length === 0 ? (
           <div className="col-span-3 text-center py-16 space-y-3">
-            <span className="material-symbols-outlined text-outline-variant text-[48px]">{activeTab === "posts" ? "photo_camera" : activeTab === "reels" ? "movie" : "bookmark"}</span>
-            <p className="text-sm text-on-surface font-bold">No {activeTab} yet</p>
-            <p className="text-xs text-outline-variant">When you share {activeTab}, they&apos;ll appear here.</p>
+            <span className="material-symbols-outlined text-white/20 text-[48px]">{activeTab === "posts" ? "photo_camera" : activeTab === "reels" ? "movie" : "bookmark"}</span>
+            <p className="text-sm text-white font-bold">No {activeTab} yet</p>
+            <p className="text-xs text-white/40">When you share {activeTab}, they&apos;ll appear here.</p>
           </div>
         ) : gridItems.map((item: any) => (
-          <div key={item.id} onClick={() => { if (activeTab === "posts") setActivePost(item); }} className="aspect-square overflow-hidden relative group cursor-pointer">
-            <img className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" src={activeTab === "posts" ? item.imageUrl : "/images/cover_neon_1779191739839.png"} alt="" />
-            <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+          <div key={item.id} onClick={() => { if (activeTab === "posts") setActivePost(item); }} className="aspect-square overflow-hidden relative group cursor-pointer border border-primary/5">
+            <img className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500" src={activeTab === "posts" ? item.imageUrl : "/images/cover_neon_1779191739839.png"} alt="" />
+            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-4 text-white">
+              {activeTab === "posts" && (
+                <>
+                  <div className="flex items-center gap-1"><span className="material-symbols-outlined text-[20px] text-primary">favorite</span><span className="text-sm font-bold">{(item.loveReaction?.count || 0)}</span></div>
+                  <div className="flex items-center gap-1"><span className="material-symbols-outlined text-[20px] text-primary">chat_bubble</span><span className="text-sm font-bold">0</span></div>
+                </>
+              )}
+            </div>
           </div>
         ))}
       </div>
 
       {/* ===== EDIT PROFILE MODAL ===== */}
       {showEditModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-[100] animate-in fade-in duration-200">
-          <div className="w-full max-w-md glass-panel rounded-2xl border border-white/40 shadow-2xl overflow-hidden">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-[100] animate-in fade-in duration-200">
+          <div className="w-full max-w-md glass-panel rounded-2xl border border-primary/25 shadow-[0_0_30px_rgba(107,255,87,0.15)] overflow-hidden">
             {/* Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-black/5">
-              <button onClick={() => setShowEditModal(false)} className="text-sm font-semibold text-on-surface-variant hover:text-on-surface">Cancel</button>
-              <h3 className="font-bold text-base text-on-surface">Edit Profile</h3>
-              <button onClick={handleEditSave} disabled={editSaving} className="text-sm font-bold text-primary hover:text-primary/80 disabled:opacity-50">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-primary/10">
+              <button onClick={() => setShowEditModal(false)} className="text-xs font-bold uppercase tracking-wider text-white/50 hover:text-white">Cancel</button>
+              <h3 className="font-bold text-sm tracking-widest uppercase text-primary font-sans">Edit Profile</h3>
+              <button onClick={handleEditSave} disabled={editSaving} className="text-xs font-bold uppercase tracking-wider text-primary hover:text-primary-container disabled:opacity-50">
                 {editSaving ? "..." : "Done"}
               </button>
             </div>
 
-            <div className="p-5 space-y-6">
+            <div className="p-5 space-y-6 overflow-y-auto max-h-[80vh] no-scrollbar">
               {/* Avatar Change */}
               <div className="flex flex-col items-center gap-3">
-                <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-primary/20">
-                  <img src={editAvatar} alt="Avatar" className="w-full h-full object-cover" />
+                <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-primary/30 p-[2px] bg-black">
+                  <img src={editAvatar} alt="Avatar" className="w-full h-full object-cover rounded-full" />
                 </div>
                 <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleAvatarUpload} />
-                <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploadingAvatar} className="text-sm text-primary font-bold hover:underline disabled:opacity-50">
+                <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploadingAvatar} className="text-xs uppercase font-bold tracking-wider text-primary hover:underline disabled:opacity-50">
                   {uploadingAvatar ? "Uploading..." : "Change profile photo"}
                 </button>
                 {/* Avatar presets */}
                 <div className="flex gap-2 flex-wrap justify-center">
                   {avatarPresets.map((url, i) => (
                     <button key={i} onClick={() => setEditAvatar(url)}
-                      className={`w-10 h-10 rounded-full overflow-hidden border-2 transition-all active:scale-90 ${editAvatar === url ? "border-primary ring-2 ring-primary/30" : "border-black/10"}`}>
-                      <img src={url} alt="" className="w-full h-full object-cover" />
+                      className={`w-10 h-10 rounded-full overflow-hidden border-2 transition-all active:scale-90 ${editAvatar === url ? "border-primary ring-2 ring-primary/30" : "border-primary/10"}`}>
+                      <img src={url} alt="" className="w-full h-full object-cover rounded-full" />
                     </button>
                   ))}
                 </div>
                 {/* Custom URL */}
                 <input type="text" value={editAvatar} onChange={e => setEditAvatar(e.target.value)} placeholder="Or paste image URL..."
-                  className="w-full bg-surface-container-low border border-black/10 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-primary font-sans text-on-surface-variant" />
+                  className="w-full bg-black/60 border border-primary/20 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary font-sans text-white/80 placeholder:text-white/30" />
               </div>
 
               {/* Fields */}
-              <div className="space-y-4">
-                <div className="border-b border-black/5 pb-3">
-                  <label className="text-xs text-on-surface-variant font-semibold">Name</label>
+              <div className="space-y-4 text-left">
+                <div className="border-b border-primary/10 pb-3">
+                  <label className="text-[10px] text-white/50 uppercase font-bold tracking-widest">Name</label>
                   <input type="text" value={editName} onChange={e => setEditName(e.target.value)}
-                    className="w-full bg-transparent border-none p-0 mt-1 text-sm text-on-surface font-medium focus:outline-none focus:ring-0" placeholder="Your display name" />
+                    className="w-full bg-transparent border-none p-0 mt-1 text-sm text-white font-medium focus:outline-none focus:ring-0 placeholder:text-white/20" placeholder="Your display name" />
                 </div>
-                <div className="border-b border-black/5 pb-3">
-                  <label className="text-xs text-on-surface-variant font-semibold">Username</label>
+                <div className="border-b border-primary/10 pb-3">
+                  <label className="text-[10px] text-white/50 uppercase font-bold tracking-widest">Username</label>
                   <div className="flex items-center mt-1">
                     <span className="text-sm text-primary font-semibold mr-1">@</span>
                     <input type="text" value={editUsername} onChange={e => { setEditUsername(e.target.value.toLowerCase().replace(/[^a-z0-9._]/g, "")); setEditError(""); }}
-                      className="flex-1 bg-transparent border-none p-0 text-sm text-on-surface font-medium focus:outline-none focus:ring-0" placeholder="username" />
+                      className="flex-1 bg-transparent border-none p-0 text-sm text-white font-medium focus:outline-none focus:ring-0 placeholder:text-white/20" placeholder="username" />
                   </div>
                   {editError && <p className="text-xs text-red-500 font-semibold mt-1 flex items-center gap-1"><span className="material-symbols-outlined text-[13px]">error</span>{editError}</p>}
                 </div>
-                <div className="border-b border-black/5 pb-3">
-                  <label className="text-xs text-on-surface-variant font-semibold">Bio</label>
+                <div className="border-b border-primary/10 pb-3">
+                  <label className="text-[10px] text-white/50 uppercase font-bold tracking-widest">Bio</label>
                   <textarea value={editBio} onChange={e => setEditBio(e.target.value)} rows={3} placeholder="Write something about yourself..."
-                    className="w-full bg-transparent border-none p-0 mt-1 text-sm text-on-surface font-medium focus:outline-none focus:ring-0 resize-none" />
+                    className="w-full bg-transparent border-none p-0 mt-1 text-sm text-white font-medium focus:outline-none focus:ring-0 resize-none placeholder:text-white/20" />
                 </div>
-                <div className="border-b border-black/5 pb-3">
-                  <label className="text-xs text-on-surface-variant font-semibold">Email</label>
+                <div className="border-b border-primary/10 pb-3">
+                  <label className="text-[10px] text-white/50 uppercase font-bold tracking-widest">Email</label>
                   <input type="email" value={editGmail} onChange={e => setEditGmail(e.target.value)}
-                    className="w-full bg-transparent border-none p-0 mt-1 text-sm text-on-surface font-medium focus:outline-none focus:ring-0" placeholder="yourname@gmail.com" />
+                    className="w-full bg-transparent border-none p-0 mt-1 text-sm text-white font-medium focus:outline-none focus:ring-0 placeholder:text-white/20" placeholder="yourname@gmail.com" />
                 </div>
               </div>
             </div>
@@ -380,43 +387,43 @@ export default function CreatorProfile() {
 
       {/* ===== SETTINGS MODAL ===== */}
       {showSettingsModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-[100] animate-in fade-in duration-200">
-          <div className="w-full max-w-md bg-surface-container-lowest rounded-2xl border border-white/40 shadow-2xl overflow-hidden text-on-surface">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-[100] animate-in fade-in duration-200">
+          <div className="w-full max-w-md glass-panel border border-primary/25 rounded-2xl shadow-[0_0_30px_rgba(107,255,87,0.15)] overflow-hidden text-white">
             {/* Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-black/5">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-primary/10">
               <div className="w-12" />
-              <h3 className="font-bold text-base">Settings</h3>
+              <h3 className="font-bold text-sm tracking-widest uppercase font-sans text-primary">Settings</h3>
               <button 
                 onClick={() => setShowSettingsModal(false)} 
-                className="text-sm font-bold text-primary hover:text-primary/80"
+                className="text-xs font-bold uppercase tracking-wider text-primary hover:text-primary-container"
               >
                 Close
               </button>
             </div>
 
             {/* Content List */}
-            <div className="p-5 space-y-5 max-h-[70vh] overflow-y-auto no-scrollbar">
+            <div className="p-5 space-y-5 max-h-[70vh] overflow-y-auto no-scrollbar text-left font-sans">
               
               {/* Theme Settings */}
-              <div className="flex justify-between items-center py-2 border-b border-black/5">
+              <div className="flex justify-between items-center py-2 border-b border-primary/10">
                 <div>
-                  <p className="text-sm font-bold">App Theme</p>
-                  <p className="text-xs text-on-surface-variant">Switch between dark and light themes</p>
+                  <p className="text-sm font-bold text-white">App Theme</p>
+                  <p className="text-xs text-white/50">Switch between dark and light themes</p>
                 </div>
                 <button
                   onClick={toggleTheme}
-                  className="px-4 py-1.5 rounded-full text-xs font-bold bg-primary text-white transition-all active:scale-95 flex items-center gap-1.5"
+                  className="px-4 py-1.5 rounded-full text-xs font-bold bg-primary text-black transition-all active:scale-95 flex items-center gap-1.5 shadow-[0_0_12px_rgba(107,255,87,0.3)]"
                 >
-                  <span className="material-symbols-outlined text-[16px]">{theme === "dark" ? "light_mode" : "dark_mode"}</span>
+                  <span className="material-symbols-outlined text-[16px] font-bold">{theme === "dark" ? "light_mode" : "dark_mode"}</span>
                   {theme === "dark" ? "Light Mode" : "Dark Mode"}
                 </button>
               </div>
 
               {/* Account Privacy Toggle */}
-              <div className="flex justify-between items-center py-2 border-b border-black/5">
+              <div className="flex justify-between items-center py-2 border-b border-primary/10">
                 <div>
-                  <p className="text-sm font-bold">Account Privacy</p>
-                  <p className="text-xs text-on-surface-variant">Control who sees your posts and stories</p>
+                  <p className="text-sm font-bold text-white">Account Privacy</p>
+                  <p className="text-xs text-white/50">Control who sees your posts and stories</p>
                 </div>
                 <button
                   onClick={() => {
@@ -428,8 +435,8 @@ export default function CreatorProfile() {
                   }}
                   className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all active:scale-95 ${
                     isPrivateAccount 
-                      ? "bg-primary text-white" 
-                      : "bg-surface-container border border-black/10 text-on-surface"
+                      ? "bg-primary text-black shadow-[0_0_12px_rgba(107,255,87,0.3)] font-bold" 
+                      : "bg-black/60 border border-primary/20 text-primary"
                   }`}
                 >
                   {isPrivateAccount ? "Private" : "Public"}
@@ -437,10 +444,10 @@ export default function CreatorProfile() {
               </div>
 
               {/* Account Block Management */}
-              <div className="py-2 border-b border-black/5 space-y-2">
+              <div className="py-2 border-b border-primary/10 space-y-2">
                 <div>
-                  <p className="text-sm font-bold">Blocked Accounts</p>
-                  <p className="text-xs text-on-surface-variant">Manage who you have blocked</p>
+                  <p className="text-sm font-bold text-white">Blocked Accounts</p>
+                  <p className="text-xs text-white/50">Manage who you have blocked</p>
                 </div>
                 <div className="flex gap-2">
                   <input
@@ -448,7 +455,7 @@ export default function CreatorProfile() {
                     value={newBlockInput}
                     onChange={(e) => setNewBlockInput(e.target.value.toLowerCase().replace(/[^a-z0-9._]/g, ""))}
                     placeholder="username to block..."
-                    className="flex-1 bg-surface-container border border-black/10 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-primary text-on-surface"
+                    className="flex-1 bg-black/60 border border-primary/20 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-primary text-white placeholder:text-white/30"
                   />
                   <button
                     onClick={() => {
@@ -464,7 +471,7 @@ export default function CreatorProfile() {
                       }
                       setNewBlockInput("");
                     }}
-                    className="px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-600 rounded-lg text-xs font-bold transition-all"
+                    className="px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 rounded-xl text-xs font-bold transition-all"
                   >
                     Block
                   </button>
@@ -472,7 +479,7 @@ export default function CreatorProfile() {
                 {blockedUsers.length > 0 ? (
                   <div className="flex gap-1.5 flex-wrap pt-1">
                     {blockedUsers.map((username) => (
-                      <div key={username} className="flex items-center gap-1 bg-surface-container px-2.5 py-1 rounded-full text-xs text-on-surface border border-black/5">
+                      <div key={username} className="flex items-center gap-1 bg-black/60 px-2.5 py-1 rounded-full text-xs text-white border border-primary/10">
                         <span>@{username}</span>
                         <button
                           onClick={() => {
@@ -490,14 +497,14 @@ export default function CreatorProfile() {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-xs text-on-surface-variant italic">No blocked accounts.</p>
+                  <p className="text-xs text-white/30 italic">No blocked accounts.</p>
                 )}
               </div>
 
               {/* About Section */}
-              <div className="py-2 border-b border-black/5">
-                <p className="text-sm font-bold">About Loop</p>
-                <div className="mt-2 text-xs text-on-surface-variant space-y-1">
+              <div className="py-2 border-b border-primary/10">
+                <p className="text-sm font-bold text-white">About Loop</p>
+                <div className="mt-2 text-xs text-white/50 space-y-1 font-sans">
                   <p><strong>Version:</strong> 1.5.0-Stable</p>
                   <p><strong>Platform:</strong> AI-Powered Social Media Web App</p>
                   <p>Designed for premium creators, digital artists, and multi-user interactions.</p>
@@ -506,10 +513,10 @@ export default function CreatorProfile() {
 
               {/* Help & Support Section */}
               <div className="py-2">
-                <p className="text-sm font-bold">Help & Support</p>
+                <p className="text-sm font-bold text-white">Help & Support</p>
                 <div className="mt-2">
-                  <div className="p-3 bg-surface-container rounded-lg border border-black/5 text-xs text-on-surface-variant space-y-1">
-                    <p className="font-bold text-on-surface">Need assistance?</p>
+                  <div className="p-3 bg-black/60 rounded-xl border border-primary/10 text-xs text-white/50 space-y-1">
+                    <p className="font-bold text-white">Need assistance?</p>
                     <p>Email: <a href="mailto:support@loopsocial.ai" className="text-primary font-semibold hover:underline">support@loopsocial.ai</a></p>
                     <p>FAQ: Toggle your theme, post high-definition reels, customize captions using AI commands, or privatize your account dynamically.</p>
                   </div>

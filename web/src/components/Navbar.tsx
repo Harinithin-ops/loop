@@ -355,16 +355,16 @@ export default function Navbar({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-[#fbf8ff]">
-      {/* ===== DARK INSTAGRAM-STYLE SIDEBAR ===== */}
-      <aside className="hidden md:flex flex-col w-[220px] lg:w-[245px] fixed h-screen bg-[#000000] border-r border-[#262626] px-3 py-8 z-40">
+      {/* ===== CYBERPUNK FUTURISTIC SIDEBAR ===== */}
+      <aside className="hidden md:flex flex-col w-[220px] lg:w-[245px] fixed h-screen bg-[#030303] border-r border-primary/10 px-3 py-8 z-40">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2 px-3 mb-8">
-          <span className="material-symbols-outlined text-white text-[32px]" style={{ fontVariationSettings: "'FILL' 1" }}>all_inclusive</span>
-          <span className="text-[24px] tracking-tight text-white font-bold" style={{ fontFamily: "'Segoe UI', sans-serif" }}>Loop</span>
+        <Link href="/" className="flex items-center gap-2.5 px-3 mb-10 group">
+          <span className="material-symbols-outlined text-primary text-[32px] drop-shadow-[0_0_10px_rgba(107,255,87,0.5)] group-hover:rotate-180 transition-transform duration-700" style={{ fontVariationSettings: "'FILL' 1" }}>all_inclusive</span>
+          <span className="text-[24px] tracking-widest text-primary font-black uppercase font-sans drop-shadow-[0_0_8px_rgba(107,255,87,0.4)]">Loop</span>
         </Link>
 
         {/* Nav Items */}
-        <nav className="flex-1 flex flex-col gap-0.5">
+        <nav className="flex-1 flex flex-col gap-1.5">
           {sidebarItems.map((item) => {
             const isActive = item.href !== "#" && pathname === item.href;
             const isSearch = item.name === "Search";
@@ -373,38 +373,46 @@ export default function Navbar({ children }: { children: React.ReactNode }) {
             if (item.action === "create") {
               return (
                 <button key={item.name} onClick={() => setIsCreateOpen(true)}
-                  className="flex items-center gap-4 px-3 py-3 rounded-lg text-[#f5f5f5] hover:bg-[#1a1a1a] transition-all duration-200 group w-full text-left">
-                  <span className="material-symbols-outlined text-[28px] text-[#f5f5f5] group-hover:scale-110 transition-transform">{item.icon}</span>
-                  <span className="text-[15px] font-normal">{item.name}</span>
+                  className="flex items-center gap-4 px-4 py-3 rounded-xl text-on-surface-variant hover:text-primary hover:bg-primary/10 border border-transparent hover:border-primary/20 transition-all duration-300 group w-full text-left">
+                  <span className="material-symbols-outlined text-[26px] group-hover:scale-110 transition-transform">{item.icon}</span>
+                  <span className="text-[14px] font-semibold tracking-wide font-sans">{item.name}</span>
                 </button>
               );
             }
             if (item.action === "notifications") {
               return (
                 <button key={item.name} onClick={() => setShowNotifications(!showNotifications)}
-                  className="flex items-center gap-4 px-3 py-3 rounded-lg text-[#f5f5f5] hover:bg-[#1a1a1a] transition-all duration-200 group w-full text-left">
-                  <span className="material-symbols-outlined text-[28px] text-[#f5f5f5] group-hover:scale-110 transition-transform"
+                  className={`flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-300 group w-full text-left border ${
+                    showNotifications 
+                      ? "text-primary bg-primary/10 border-primary/20 shadow-[0_0_15px_rgba(107,255,87,0.05)]" 
+                      : "text-on-surface-variant hover:text-primary hover:bg-primary/10 border-transparent hover:border-primary/20"
+                  }`}>
+                  <span className="material-symbols-outlined text-[26px] group-hover:scale-110 transition-transform"
                     style={showNotifications ? { fontVariationSettings: "'FILL' 1" } : {}}>{item.icon}</span>
-                  <span className="text-[15px] font-normal">{item.name}</span>
+                  <span className="text-[14px] font-semibold tracking-wide font-sans">{item.name}</span>
                 </button>
               );
             }
 
             return (
               <Link key={item.name} href={item.href}
-                className={`flex items-center gap-4 px-3 py-3 rounded-lg transition-all duration-200 group relative ${
-                  isActive ? "text-white font-bold" : isSearch ? "text-[#f5f5f5] bg-[#1a1a1a]" : "text-[#f5f5f5] hover:bg-[#1a1a1a]"
+                className={`flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-300 group relative border ${
+                  isActive 
+                    ? "text-primary bg-primary/10 border-primary/25 font-bold shadow-[0_0_15px_rgba(107,255,87,0.05)]" 
+                    : isSearch 
+                      ? "text-primary bg-primary/5 border-primary/10 hover:bg-primary/10" 
+                      : "text-on-surface-variant hover:text-primary hover:bg-primary/10 border-transparent hover:border-primary/20"
                 }`}>
                 {/* Profile uses avatar, others use icon */}
                 {item.isProfile ? (
-                  <div className={`w-[28px] h-[28px] rounded-full overflow-hidden border-2 ${isActive ? "border-white" : "border-transparent"}`}>
+                  <div className={`w-[26px] h-[26px] rounded-full overflow-hidden border-2 ${isActive ? "border-primary shadow-[0_0_8px_rgba(107,255,87,0.4)]" : "border-transparent"}`}>
                     <img src={userAvatar} alt="Profile" className="w-full h-full object-cover" />
                   </div>
                 ) : (
-                  <span className="material-symbols-outlined text-[28px] group-hover:scale-110 transition-transform"
+                  <span className="material-symbols-outlined text-[26px] group-hover:scale-110 transition-transform"
                     style={isActive ? { fontVariationSettings: "'FILL' 1" } : {}}>{item.icon}</span>
                 )}
-                <span className={`text-[15px] ${isActive ? "font-bold" : "font-normal"}`}>{item.name}</span>
+                <span className="text-[14px] font-semibold tracking-wide font-sans">{item.name}</span>
 
                 {/* Unread badge for Messages */}
                 {item.badge && item.badge > 0 ? (
@@ -648,28 +656,32 @@ export default function Navbar({ children }: { children: React.ReactNode }) {
 
         <main className="flex-1 md:p-8">{children}</main>
 
-        {/* ===== MOBILE BOTTOM NAV ===== */}
+        {/* ===== PREMIUM FLOATING MOBILE BOTTOM NAV ===== */}
         <nav
-          className="md:hidden fixed bottom-0 left-0 right-0 w-full bg-[#000000] border-t border-[#121212] flex justify-around items-center h-[52px] z-50 transition-all duration-300">
+          className="md:hidden fixed bottom-4 left-4 right-4 bg-black/60 backdrop-blur-2xl border border-primary/20 rounded-2xl flex justify-around items-center h-[62px] z-50 shadow-[0_10px_30px_rgba(0,0,0,0.8),_0_0_20px_rgba(107,255,87,0.05)] transition-all duration-300">
           {mobileItems.map((item) => {
             const isActive = item.href !== "#" && pathname === item.href;
             if (item.action) {
               return (
                 <button key={item.name} onClick={() => setIsCreateOpen(true)}
-                  className="text-[#a8a8a8] hover:text-white transition-all active:scale-90 duration-200 flex flex-col items-center justify-center relative w-12 h-12">
+                  aria-label="Create new pulse"
+                  className="text-primary hover:text-white bg-black border border-primary/40 shadow-[0_0_15px_rgba(107,255,87,0.3)] rounded-full transition-all active:scale-95 duration-200 flex items-center justify-center relative w-12 h-12 -mt-5">
                   {renderMobileIcon(item.name, isActive)}
                 </button>
               );
             }
             return (
               <Link key={item.name} href={item.href}
-                className={`transition-all duration-200 flex flex-col items-center justify-center relative w-12 h-12 ${isActive ? "text-white scale-105" : "text-[#a8a8a8] hover:text-white"}`}>
+                className={`transition-all duration-200 flex flex-col items-center justify-center relative w-12 h-12 ${isActive ? "text-primary scale-110" : "text-on-surface-variant hover:text-primary"}`}>
                 {item.isProfile ? (
-                  <div className={`w-[26px] h-[26px] rounded-full overflow-hidden border ${isActive ? "border-white" : "border-transparent"}`}>
+                  <div className={`w-[26px] h-[26px] rounded-full overflow-hidden border ${isActive ? "border-primary shadow-[0_0_10px_rgba(107,255,87,0.5)]" : "border-transparent"}`}>
                     <img src={userAvatar} alt="" className="w-full h-full object-cover" />
                   </div>
                 ) : (
                   renderMobileIcon(item.name, isActive)
+                )}
+                {isActive && (
+                  <span className="w-1.5 h-1.5 bg-primary rounded-full absolute bottom-1 shadow-[0_0_8px_rgba(107,255,87,0.8)]" />
                 )}
                 {item.badge && item.badge > 0 ? (
                   <span className="absolute top-1 right-1.5 min-w-[16px] h-4 px-1 bg-[#ff3040] text-white text-[9px] font-bold rounded-full flex items-center justify-center border border-black">

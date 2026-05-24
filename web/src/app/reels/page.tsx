@@ -118,13 +118,13 @@ export default function ReelsPage() {
   return (
     <div className="pt-16 pb-24 md:pt-0 md:pb-0 max-w-[480px] mx-auto">
       {/* Reels vertical scroll container */}
-      <div ref={containerRef} className="snap-y snap-mandatory overflow-y-auto h-[calc(100vh-64px)] no-scrollbar">
+      <div ref={containerRef} className="snap-y snap-mandatory overflow-y-auto h-[calc(100vh-64px)] no-scrollbar py-2">
         {reels.map((reel, index) => (
           <div
             key={reel.id}
             ref={(el) => { reelRefs.current[index] = el; }}
             data-index={index}
-            className="snap-start h-[calc(100vh-64px)] w-full relative bg-black rounded-xl overflow-hidden mb-1"
+            className="snap-start h-[calc(100vh-76px)] w-full relative bg-black rounded-2xl border border-primary/20 overflow-hidden mb-4 shadow-[0_10px_35px_rgba(0,0,0,0.9),_0_0_20px_rgba(107,255,87,0.05)]"
           >
             {/* Video */}
             <video
@@ -140,45 +140,60 @@ export default function ReelsPage() {
             />
 
             {/* Gradient overlay at bottom */}
-            <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-black/80 to-transparent pointer-events-none" />
+            <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none" />
 
             {/* Bottom info: user + caption */}
-            <div className="absolute bottom-6 left-4 right-16 space-y-2 z-10">
-              <Link href={`/user/${reel.userUsername || reel.userId}`} className="flex items-center gap-2 group">
-                <img src={reel.userAvatar} alt="" className="w-9 h-9 rounded-full border-2 border-white object-cover" />
-                <span className="text-white font-bold text-sm group-hover:text-primary transition-colors">
-                  {reel.userUsername || reel.userName}
+            <div className="absolute bottom-6 left-4 right-16 space-y-2.5 z-10 text-left">
+              <Link href={`/user/${reel.userUsername || reel.userId}`} className="flex items-center gap-3 group w-fit">
+                <div className="w-10 h-10 rounded-full p-[1.5px] bg-primary/20 group-hover:bg-primary shadow-[0_0_10px_rgba(107,255,87,0.2)] transition-all duration-300">
+                  <img src={reel.userAvatar} alt="" className="w-full h-full rounded-full border border-background object-cover" />
+                </div>
+                <span className="text-white font-bold text-[14px] group-hover:text-primary transition-colors tracking-wide drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+                  @{reel.userUsername || reel.userName}
                 </span>
               </Link>
               {reel.caption && (
-                <p className="text-white text-sm leading-snug line-clamp-2">{reel.caption}</p>
+                <p className="text-white/90 text-[13.5px] leading-relaxed drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] pr-2 font-sans font-medium">{reel.caption}</p>
               )}
+
+              {/* Audio Waveform Indicator */}
+              <div className="flex items-center gap-2 text-primary bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-primary/20 w-fit mt-1 shadow-md">
+                <span className="material-symbols-outlined text-[13px] animate-pulse">music_note</span>
+                <span className="text-[9.5px] uppercase font-bold tracking-widest font-sans">System Audio Feed</span>
+                <div className="flex items-end h-3 gap-[1.5px] ml-1">
+                  <span className="wave-bar"></span>
+                  <span className="wave-bar"></span>
+                  <span className="wave-bar"></span>
+                  <span className="wave-bar"></span>
+                  <span className="wave-bar"></span>
+                </div>
+              </div>
             </div>
 
             {/* Right side action buttons */}
-            <div className="absolute right-3 bottom-24 flex flex-col items-center gap-5 z-10">
+            <div className="absolute right-3 bottom-20 flex flex-col items-center gap-5.5 z-10 bg-black/40 backdrop-blur-md py-4 px-2 rounded-2xl border border-white/5 shadow-xl">
               {/* Like */}
               <button onClick={() => handleLike(reel.id)} className="flex flex-col items-center gap-1 active:scale-90 transition-transform">
                 <span
-                  className={`material-symbols-outlined text-[28px] transition-colors ${likedReels.has(reel.id) ? "text-red-500" : "text-white"}`}
+                  className={`material-symbols-outlined text-[28px] transition-colors drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] ${likedReels.has(reel.id) ? "text-primary filter drop-shadow-[0_0_8px_rgba(107,255,87,0.6)]" : "text-white hover:text-primary"}`}
                   style={likedReels.has(reel.id) ? { fontVariationSettings: "'FILL' 1" } : {}}
                 >
                   favorite
                 </span>
-                <span className="text-white text-[11px] font-bold">
+                <span className="text-white/80 text-[10px] font-bold tracking-tight">
                   {reel.likesCount + (likedReels.has(reel.id) ? 1 : 0)}
                 </span>
               </button>
 
               {/* Comment */}
-              <button className="flex flex-col items-center gap-1 active:scale-90 transition-transform">
-                <span className="material-symbols-outlined text-[28px] text-white">chat_bubble</span>
-                <span className="text-white text-[11px] font-bold">0</span>
+              <button className="flex flex-col items-center gap-1 active:scale-90 transition-transform text-white hover:text-primary transition-colors">
+                <span className="material-symbols-outlined text-[28px] drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">chat_bubble</span>
+                <span className="text-white/80 text-[10px] font-bold tracking-tight">0</span>
               </button>
 
               {/* Share */}
-              <button className="flex flex-col items-center gap-1 active:scale-90 transition-transform">
-                <span className="material-symbols-outlined text-[28px] text-white">send</span>
+              <button className="flex flex-col items-center gap-1 active:scale-90 transition-transform text-white hover:text-primary transition-colors">
+                <span className="material-symbols-outlined text-[28px] drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">send</span>
               </button>
 
               {/* Delete Reel (Only for creator) */}
@@ -188,13 +203,13 @@ export default function ReelsPage() {
                   className="flex flex-col items-center gap-1 active:scale-90 transition-transform text-[#ff3040] hover:text-red-500"
                   title="Delete Reel"
                 >
-                  <span className="material-symbols-outlined text-[28px]">delete</span>
+                  <span className="material-symbols-outlined text-[28px] drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">delete</span>
                 </button>
               )}
 
               {/* Music disc animation */}
-              <div className="w-9 h-9 rounded-full border-2 border-white/30 overflow-hidden mt-2 animate-spin" style={{ animationDuration: "4s" }}>
-                <img src={reel.userAvatar} alt="" className="w-full h-full object-cover" />
+              <div className="w-9 h-9 rounded-full border border-primary/40 p-[1px] shadow-[0_0_12px_rgba(107,255,87,0.3)] overflow-hidden mt-1 animate-spin" style={{ animationDuration: "5s" }}>
+                <img src={reel.userAvatar} alt="" className="w-full h-full object-cover rounded-full" />
               </div>
             </div>
 
