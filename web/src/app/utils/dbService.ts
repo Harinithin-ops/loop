@@ -1,5 +1,28 @@
 import { supabase } from "./supabase";
 
+// Helper to construct API URLs. When running inside the Capacitor Android/iOS WebView environment
+// with a static (offline) build, relative URLs fail since there is no local Next.js API server.
+// This helper detects that scenario and prefixes the deployed Vercel URL.
+const VERCEL_DEPLOYMENT = "https://loop-ochre-gamma.vercel.app";
+
+function getApiUrl(path: string): string {
+  if (typeof window === "undefined") return path;
+  const proto = window.location.protocol;
+  const host = window.location.hostname;
+  // Already on the Vercel deployment — relative paths work fine
+  if (host.includes("vercel.app") || host.includes("loop-ochre-gamma")) return path;
+  // Detect Capacitor/static environments where there is no API server
+  const isOfflineWebView =
+    proto === "capacitor:" ||
+    proto === "file:" ||
+    (typeof (window as any).Capacitor !== "undefined") ||
+    (proto === "http:" && host === "localhost" && !window.location.port);
+  if (isOfflineWebView) {
+    return `${VERCEL_DEPLOYMENT}${path}`;
+  }
+  return path;
+}
+
 function generateUUID(): string {
   if (typeof window !== "undefined" && window.crypto && window.crypto.randomUUID) {
     return window.crypto.randomUUID();
@@ -1307,7 +1330,7 @@ export const dbService = {
 
     // 2. Try via Next.js API route (bypasses RLS using service role key)
     try {
-      const res = await fetch("/api/follow", {
+      const res = await fetch(getApiUrl("/api/follow"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -1408,7 +1431,7 @@ export const dbService = {
 
     // 2. Use API route (bypasses RLS)
     try {
-      const res = await fetch("/api/follow", {
+      const res = await fetch(getApiUrl("/api/follow"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "accept", requestId }),
@@ -1436,7 +1459,7 @@ export const dbService = {
 
     // 2. Use API route (bypasses RLS)
     try {
-      const res = await fetch("/api/follow", {
+      const res = await fetch(getApiUrl("/api/follow"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "reject", requestId }),
@@ -1524,7 +1547,7 @@ export const dbService = {
     // Fallback: Fetch via API route only if direct query failed
     if (!fetchedDirectly) {
       try {
-        const res = await fetch("/api/follow", {
+        const res = await fetch(getApiUrl("/api/follow"), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action: "incoming", receiverId: user.id }),
@@ -1814,7 +1837,7 @@ export const dbService = {
       profiles.map(async (profile: any) => {
         let dbMessages: any[] = [];
         try {
-          const res = await fetch("/api/messages", {
+          const res = await fetch(getApiUrl("/api/messages"), {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -1976,7 +1999,7 @@ export const dbService = {
     // PRIORITY 1: Write to Supabase first so the other user (on any device) can see it immediately
     let savedId: string | null = null;
     try {
-      const res = await fetch("/api/messages", {
+      const res = await fetch(getApiUrl("/api/messages"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

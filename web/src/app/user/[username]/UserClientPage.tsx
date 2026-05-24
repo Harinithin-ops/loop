@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
   dbService,
   RealPost,
@@ -16,8 +16,11 @@ import PostDetailModal from "@/components/PostDetailModal";
 
 export default function UserClientPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const router = useRouter();
-  const username = params.username as string;
+  
+  // Support both dynamic route [username] and query param fallback ?username=...
+  const username = (params.username as string) || searchParams.get("username") || "";
 
   const [currentUser, setCurrentUser] = useState<RealUser | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);

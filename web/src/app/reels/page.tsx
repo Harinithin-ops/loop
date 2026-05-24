@@ -144,7 +144,7 @@ export default function ReelsPage() {
 
             {/* Bottom info: user + caption */}
             <div className="absolute bottom-6 left-4 right-16 space-y-2.5 z-10 text-left">
-              <Link href={`/user/${reel.userUsername || reel.userId}`} className="flex items-center gap-3 group w-fit">
+              <Link href={`/user?username=${reel.userUsername || reel.userId}`} className="flex items-center gap-3 group w-fit">
                 <div className="w-10 h-10 rounded-full p-[1.5px] bg-primary/20 group-hover:bg-primary shadow-[0_0_10px_rgba(107,255,87,0.2)] transition-all duration-300">
                   <img src={reel.userAvatar} alt="" className="w-full h-full rounded-full border border-background object-cover" />
                 </div>

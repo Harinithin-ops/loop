@@ -298,7 +298,7 @@ export default function HomeFeed() {
                 {/* Header */}
                 <div className="flex justify-between items-center p-4">
                   <div className="flex items-center gap-3">
-                    <Link href={post.authorUsername || post.authorId ? `/user/${post.authorUsername || post.authorId}` : "#"} className="relative">
+                    <Link href={post.authorUsername || post.authorId ? `/user?username=${post.authorUsername || post.authorId}` : "#"} className="relative">
                       <div className="w-10 h-10 rounded-full p-[1.5px] bg-primary/20 hover:bg-primary transition-all duration-300">
                         <img
                           className="w-full h-full rounded-full object-cover border border-background"
@@ -310,7 +310,7 @@ export default function HomeFeed() {
                     <div className="text-left">
                       <div className="flex items-center gap-1.5 font-sans">
                         <Link
-                          href={post.authorUsername || post.authorId ? `/user/${post.authorUsername || post.authorId}` : "#"}
+                          href={post.authorUsername || post.authorId ? `/user?username=${post.authorUsername || post.authorId}` : "#"}
                           className="font-bold text-[14px] hover:text-primary transition-colors leading-none"
                         >
                           {post.authorUsername || "user"}
@@ -398,7 +398,7 @@ export default function HomeFeed() {
                           Go to post
                         </button>
                         <button
-                          onClick={() => { setOpenMenuPostId(null); window.location.href = post.authorUsername || post.authorId ? `/user/${post.authorUsername || post.authorId}` : "#"; }}
+                          onClick={() => { setOpenMenuPostId(null); window.location.href = post.authorUsername || post.authorId ? `/user?username=${post.authorUsername || post.authorId}` : "#"; }}
                           className="w-full px-4 py-3.5 text-center text-[15px] font-medium text-on-surface hover:bg-white/5 active:bg-white/10 transition-colors border-b border-white/10"
                         >
                           About this account
@@ -503,10 +503,7 @@ export default function HomeFeed() {
                 {/* Likes info */}
                 <div className="px-4 pb-1 text-left">
                   <p className="font-bold text-sm">
-                    Liked by <span className="hover:underline cursor-pointer">vv_krisha_sri</span> and{" "}
-                    <span className="hover:underline cursor-pointer">
-                      {(loveReaction?.count || 0).toLocaleString()} others
-                    </span>
+                    {(loveReaction?.count || 0).toLocaleString()} likes
                   </p>
                 </div>
 

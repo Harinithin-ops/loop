@@ -369,11 +369,11 @@ export default function Messages() {
                   </div>
 
                   <div className="flex items-center gap-3">
-                    <Link href={`/user/${req.senderUsername || req.senderId}`}>
+                    <Link href={`/user?username=${req.senderUsername || req.senderId}`}>
                       <img src={req.senderAvatar} alt={req.senderName} className="w-12 h-12 rounded-full object-cover border border-primary/10" />
                     </Link>
                     <div className="flex-1 min-w-0">
-                      <Link href={`/user/${req.senderUsername || req.senderId}`} className="font-bold text-sm text-white truncate block hover:text-primary transition-colors">
+                      <Link href={`/user?username=${req.senderUsername || req.senderId}`} className="font-bold text-sm text-white truncate block hover:text-primary transition-colors">
                         {req.senderName}
                       </Link>
                       <p className="text-xs text-primary font-semibold">@{req.senderUsername}</p>
@@ -431,7 +431,7 @@ export default function Messages() {
                 <span className="material-symbols-outlined text-[24px]">arrow_back</span>
               </button>
 
-              <Link href={`/user/${activeChat.username || activeChat.id}`} className="flex items-center gap-3 hover:opacity-85 transition-opacity">
+              <Link href={`/user?username=${activeChat.username || activeChat.id}`} className="flex items-center gap-3 hover:opacity-85 transition-opacity">
                 <img className="w-10 h-10 rounded-full object-cover border border-primary/10" src={activeChat.avatar} alt={activeChat.name} />
                 <div className="text-left">
                   <h3 className="font-bold text-[14px] leading-tight text-white">{activeChat.name}</h3>

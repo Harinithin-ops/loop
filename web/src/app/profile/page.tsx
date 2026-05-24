@@ -181,9 +181,9 @@ export default function CreatorProfile() {
             <div className="mt-4 space-y-3 border-t border-black/5 pt-4">
               {incomingRequests.map(req => (
                 <div key={req.id} className="flex items-center gap-3">
-                  <Link href={`/user/${req.senderUsername || req.senderId}`}><img src={req.senderAvatar} alt="" className="w-10 h-10 rounded-full object-cover border border-black/5" /></Link>
+                  <Link href={`/user?username=${req.senderUsername || req.senderId}`}><img src={req.senderAvatar} alt="" className="w-10 h-10 rounded-full object-cover border border-black/5" /></Link>
                   <div className="flex-1 min-w-0">
-                    <Link href={`/user/${req.senderUsername || req.senderId}`} className="font-bold text-sm text-on-surface truncate block hover:text-primary">{req.senderName}</Link>
+                    <Link href={`/user?username=${req.senderUsername || req.senderId}`} className="font-bold text-sm text-on-surface truncate block hover:text-primary">{req.senderName}</Link>
                     <p className="text-xs text-primary font-semibold">@{req.senderUsername}</p>
                   </div>
                   <button onClick={() => handleAccept(req.id)} className="px-3 py-1.5 bg-primary text-white rounded-full text-xs font-bold active:scale-95 transition-all">Accept</button>
