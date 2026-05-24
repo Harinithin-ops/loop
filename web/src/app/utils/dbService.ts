@@ -364,17 +364,46 @@ export const dbService = {
   async getActiveUser(): Promise<RealUser | null> {
     if (cachedActiveUser) return cachedActiveUser;
 
+    // FAST PATH: Return stored user immediately if available, then sync in background.
+    // This prevents the app from hanging if getSession is slow (e.g., on resume from background).
+    const stored = getStoredActiveUser();
+
     try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      // Wrap getSession with a timeout to prevent infinite blocking
+      let session: any = null;
+      try {
+        const sessionResult = await Promise.race([
+          supabase.auth.getSession(),
+          new Promise<null>((resolve) => setTimeout(() => {
+            console.warn("[Loop] getSession timed out after 6s, using cached user");
+            resolve(null);
+          }, 6000))
+        ]);
+        if (sessionResult && typeof sessionResult === "object" && "data" in sessionResult) {
+          session = (sessionResult as any).data?.session;
+        }
+      } catch (sessionErr) {
+        console.warn("[Loop] getSession error:", sessionErr);
+      }
+
       if (session?.user) {
-        // Return localStorage fallback active user immediately for ultra-fast, offline-capable load
-        const stored = getStoredActiveUser();
+        // If we have a stored user matching the session, return it immediately
         if (stored && stored.id === session.user.id) {
           cachedActiveUser = stored;
           // Trigger silent background sync to ensure it matches the database
           this.syncActiveUserInBackground(session.user.id, session.user.email);
+
+          // Proactively refresh token if near expiry
+          const expiresAt = session.expires_at;
+          if (expiresAt) {
+            const expiresInMs = expiresAt * 1000 - Date.now();
+            if (expiresInMs < 5 * 60 * 1000) {
+              supabase.auth.refreshSession().catch((err: any) => {
+                console.warn("[Loop] Token refresh failed:", err);
+              });
+            }
+          }
+
           return stored;
         }
 
@@ -394,11 +423,19 @@ export const dbService = {
         setStoredActiveUser(userObj);
         cachedActiveUser = userObj;
         return userObj;
-      } else {
+      } else if (!stored) {
+        // No session AND no stored user — user is truly not logged in
         setStoredActiveUser(null);
       }
     } catch (e) {
       console.warn("Auth session check failed:", e);
+    }
+
+    // FALLBACK: If getSession failed/timed out but we have a stored user, return it
+    // This prevents the app from showing "not logged in" after a background/foreground cycle
+    if (stored) {
+      cachedActiveUser = stored;
+      return stored;
     }
 
     return null;

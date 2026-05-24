@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { supabase } from "@/app/utils/supabase";
 import { dbService, uploadFileToStorage, RealNotification } from "@/app/utils/dbService";
 import { useTheme } from "@/app/utils/ThemeProvider";
+import { withTimeout, logInfo, logError } from "@/app/utils/mobileOptimization";
 
 const renderMobileIcon = (name: string, isActive: boolean) => {
   switch (name) {
@@ -145,23 +146,31 @@ export default function Navbar({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const checkUser = async () => {
-      const active = await dbService.getActiveUser();
-      setUser(active);
-      if (active) {
-        const count = await dbService.getTotalUnreadCount();
-        setUnreadCount(count);
-        // Load initial notifications
-        try {
-          const data = await dbService.getNotifications();
-          setNotifications(data);
-        } catch {}
+      try {
+        const active = await withTimeout(dbService.getActiveUser(), 8000, null, "Navbar.getActiveUser");
+        setUser(active);
+        if (active) {
+          const count = await withTimeout(dbService.getTotalUnreadCount(), 5000, 0, "Navbar.getUnreadCount");
+          setUnreadCount(count);
+          // Load initial notifications
+          try {
+            const data = await withTimeout(dbService.getNotifications(), 6000, [], "Navbar.getNotifications");
+            setNotifications(data);
+          } catch {}
+        }
+      } catch (err) {
+        logError("Navbar checkUser failed:", err);
       }
     };
     checkUser();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async () => {
-      const active = await dbService.getActiveUser();
-      setUser(active);
+      try {
+        const active = await withTimeout(dbService.getActiveUser(), 8000, null, "Navbar.onAuthChange");
+        setUser(active);
+      } catch (err) {
+        logError("Navbar onAuthStateChange failed:", err);
+      }
     });
 
     // Realtime follow requests live sync
@@ -197,6 +206,13 @@ export default function Navbar({ children }: { children: React.ReactNode }) {
 
     window.addEventListener("loop_auth_changed", checkUser);
 
+    // App resume handler — re-check auth when app comes back from background
+    const handleAppResume = () => {
+      logInfo("Navbar: app resumed, re-checking user state");
+      checkUser();
+    };
+    window.addEventListener("loop_app_resume", handleAppResume);
+
     const handleOpenCreateStory = () => {
       setCreateType("story");
       setIsCreateOpen(true);
@@ -206,11 +222,11 @@ export default function Navbar({ children }: { children: React.ReactNode }) {
 
     const interval = setInterval(async () => {
       try {
-        const c = await dbService.getTotalUnreadCount();
+        const c = await withTimeout(dbService.getTotalUnreadCount(), 5000, 0, "Navbar.poll.unread");
         setUnreadCount(c);
-        const activeUser = await dbService.getActiveUser();
+        const activeUser = await withTimeout(dbService.getActiveUser(), 5000, null, "Navbar.poll.user");
         if (activeUser) {
-          const data = await dbService.getNotifications();
+          const data = await withTimeout(dbService.getNotifications(), 5000, [], "Navbar.poll.notifs");
           setNotifications(data);
         }
       } catch {}
@@ -221,6 +237,7 @@ export default function Navbar({ children }: { children: React.ReactNode }) {
       supabase.removeChannel(followChannel);
       supabase.removeChannel(notifChannel);
       window.removeEventListener("loop_auth_changed", checkUser);
+      window.removeEventListener("loop_app_resume", handleAppResume);
       window.removeEventListener("loop_open_create_story", handleOpenCreateStory);
       clearInterval(interval);
     };

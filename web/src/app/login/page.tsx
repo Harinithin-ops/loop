@@ -18,11 +18,19 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
 
+    // Safety timeout: if login takes more than 15 seconds, abort
+    const loginTimeout = setTimeout(() => {
+      setLoading(false);
+      setError("Login timed out. Please check your internet connection and try again.");
+    }, 15000);
+
     try {
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
+
+      clearTimeout(loginTimeout);
 
       if (signInError) {
         // Handle wrong password or other errors specifically
@@ -44,6 +52,7 @@ export default function LoginPage() {
         setLoading(false);
       }
     } catch (err: any) {
+      clearTimeout(loginTimeout);
       console.error("Login exception:", err);
       setError(err?.message || "An exception occurred. Please try again.");
       setLoading(false);

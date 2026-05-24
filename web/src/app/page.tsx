@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { dbService, RealPost, RealStory, RealUser } from "@/app/utils/dbService";
 import Link from "next/link";
 import PostDetailModal from "@/components/PostDetailModal";
+import { withTimeout, logInfo, logError } from "@/app/utils/mobileOptimization";
 
 interface Reaction {
   emoji: string;
@@ -17,6 +18,7 @@ export default function HomeFeed() {
   const [posts, setPosts] = useState<RealPost[]>([]);
   const [stories, setStories] = useState<RealStory[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   // Active Story viewer modal
   const [activeStory, setActiveStory] = useState<RealStory | null>(null);
@@ -39,15 +41,28 @@ export default function HomeFeed() {
     { sender: "assistant", text: "Hey! I'm Loop Assistant. Ask me to generate captions, optimize hashtags, or analyze feed vibes!" },
   ]);
 
+  // Safety timeout ref — prevents infinite loading spinner
+  const loadingTimeoutRef = useRef<any>(null);
+
   const loadData = async (isInitial = false) => {
     if (isInitial || (posts.length === 0 && stories.length === 0)) {
       setLoading(true);
+      setLoadError(false);
     }
+
+    // Safety timeout: force stop loading after 12 seconds no matter what
+    if (loadingTimeoutRef.current) clearTimeout(loadingTimeoutRef.current);
+    loadingTimeoutRef.current = setTimeout(() => {
+      setLoading(false);
+      logError("Feed loading safety timeout triggered (12s)");
+    }, 12000);
+
     try {
+      // Wrap each call with individual timeouts to prevent one slow API from blocking everything
       const [user, fetchedPosts, fetchedStories] = await Promise.all([
-        dbService.getActiveUser(),
-        dbService.getPosts(),
-        dbService.getStories(),
+        withTimeout(dbService.getActiveUser(), 8000, null, "getActiveUser"),
+        withTimeout(dbService.getPosts(), 10000, [] as RealPost[], "getPosts"),
+        withTimeout(dbService.getStories(), 10000, [] as RealStory[], "getStories"),
       ]);
 
       setCurrentUser(user);
@@ -65,9 +80,13 @@ export default function HomeFeed() {
         ];
       });
       setPostReactions((prev) => ({ ...reactionsMap, ...prev }));
+
+      if (isInitial) logInfo("Feed data loaded successfully");
     } catch (err) {
-      console.error("Error loading feed data:", err);
+      logError("Error loading feed data:", err);
+      setLoadError(true);
     } finally {
+      if (loadingTimeoutRef.current) clearTimeout(loadingTimeoutRef.current);
       setLoading(false);
     }
   };
@@ -78,8 +97,26 @@ export default function HomeFeed() {
     // Listen to publish events from Navbar/Create dialog
     const handleRefresh = () => loadData(false);
     window.addEventListener("loop_feed_refresh", handleRefresh);
+
+    // Listen to app resume events — silently refresh data when app comes back to foreground
+    const handleResume = () => {
+      logInfo("Home feed: app resumed, refreshing data silently");
+      loadData(false);
+    };
+    window.addEventListener("loop_app_resume", handleResume);
+
+    // Listen to online sync events — retry loading when connection returns
+    const handleOnlineSync = () => {
+      logInfo("Home feed: online sync, reloading data");
+      loadData(false);
+    };
+    window.addEventListener("loop_online_sync", handleOnlineSync);
+
     return () => {
+      if (loadingTimeoutRef.current) clearTimeout(loadingTimeoutRef.current);
       window.removeEventListener("loop_feed_refresh", handleRefresh);
+      window.removeEventListener("loop_app_resume", handleResume);
+      window.removeEventListener("loop_online_sync", handleOnlineSync);
     };
   }, []);
 
@@ -220,6 +257,20 @@ export default function HomeFeed() {
           <div className="flex flex-col items-center justify-center py-12 space-y-4">
             <span className="material-symbols-outlined animate-spin text-[36px] text-primary">progress_activity</span>
             <p className="text-sm font-semibold text-outline-variant font-label-caps tracking-wider">LOADING LOOP STREAM...</p>
+          </div>
+        ) : loadError && posts.length === 0 ? (
+          <div className="glass-panel p-8 rounded-lg border border-white/40 shadow-md text-center space-y-4">
+            <span className="material-symbols-outlined text-[48px] text-red-400">cloud_off</span>
+            <h3 className="text-xl font-bold text-on-surface">Failed to Load Feed</h3>
+            <p className="text-sm text-on-surface-variant max-w-sm mx-auto">
+              Something went wrong loading your feed. Please check your connection and try again.
+            </p>
+            <button
+              onClick={() => loadData(true)}
+              className="mt-2 px-6 py-2.5 bg-primary text-white rounded-xl font-bold text-sm hover:bg-primary/90 active:scale-95 transition-all"
+            >
+              Retry
+            </button>
           </div>
         ) : posts.length === 0 ? (
           <div className="glass-panel p-8 rounded-lg border border-white/40 shadow-md text-center space-y-4">
