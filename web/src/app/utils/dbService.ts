@@ -1843,11 +1843,11 @@ export const dbService = {
             .select("*")
             .or(`and(senderId.eq.${user.id},receiverId.eq.${profile.id}),and(senderId.eq.${profile.id},receiverId.eq.${user.id})`)
             .order("createdAt", { ascending: true });
-          if (!error && directMsgs) {
+          if (!error && directMsgs && directMsgs.length > 0) {
             dbMessages = directMsgs;
           } else {
-            console.warn("Direct Supabase message fetch failed, attempting API fallback...", error?.message);
-            throw new Error(error?.message || "fetch failed");
+            console.warn("Direct Supabase message fetch returned zero or failed, attempting API fallback...", error?.message);
+            throw new Error(error?.message || "fetch returned zero or failed");
           }
         } catch (e) {
           // Attempt 2: Fallback to Next.js API server endpoint

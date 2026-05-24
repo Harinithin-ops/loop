@@ -4,7 +4,7 @@ import Constants from "expo-constants";
 
 function getBaseApiUrl() {
   if (!__DEV__) {
-    return "https://loop-hariraj1389-9205s-projects.vercel.app";
+    return "https://loop-ochre-gamma.vercel.app";
   }
   const hostUri = Constants.expoConfig?.hostUri;
   if (hostUri) {
@@ -492,11 +492,11 @@ export const dbService = {
             .or(`and(senderId.eq.${user.id},receiverId.eq.${partnerId}),and(senderId.eq.${partnerId},receiverId.eq.${user.id})`)
             .order("createdAt", { ascending: true })
             .limit(50);
-          if (!error && directMsgs) {
+          if (!error && directMsgs && directMsgs.length > 0) {
             msgs = directMsgs;
           } else {
-            console.warn("Direct Supabase message fetch failed, attempting API fallback...", error?.message);
-            throw new Error(error?.message || "fetch failed");
+            console.warn("Direct Supabase message fetch returned zero or failed, attempting API fallback...", error?.message);
+            throw new Error(error?.message || "fetch returned zero or failed");
           }
         } catch {
           // Attempt 2: Fallback to local Next.js API server endpoint (Local Dev mode)

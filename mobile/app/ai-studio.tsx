@@ -24,7 +24,7 @@ const { width } = Dimensions.get("window");
 // Auto-detect Next.js dev server host IP address in development
 function getBaseApiUrl() {
   if (!__DEV__) {
-    return "https://loop-hariraj1389-9205s-projects.vercel.app";
+    return "https://loop-ochre-gamma.vercel.app";
   }
   const hostUri = Constants.expoConfig?.hostUri;
   if (hostUri) {
