@@ -1836,25 +1836,42 @@ export const dbService = {
     const chats: RealChat[] = await Promise.all(
       profiles.map(async (profile: any) => {
         let dbMessages: any[] = [];
+        // Attempt 1: Direct client-side read from Supabase
         try {
-          const res = await fetch(getApiUrl("/api/messages"), {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              action: "get",
-              userId: user.id,
-              otherId: profile.id
-            })
-          });
-          if (res.ok) {
-            const resultData = await res.json();
-            if (resultData.messages) dbMessages = resultData.messages;
+          const { data: directMsgs, error } = await supabase
+            .from("messages")
+            .select("*")
+            .or(`and(senderId.eq.${user.id},receiverId.eq.${profile.id}),and(senderId.eq.${profile.id},receiverId.eq.${user.id})`)
+            .order("createdAt", { ascending: true });
+          if (!error && directMsgs) {
+            dbMessages = directMsgs;
           } else {
-            console.warn("fetch messages API returned error:", res.status);
+            console.warn("Direct Supabase message fetch failed, attempting API fallback...", error?.message);
+            throw new Error(error?.message || "fetch failed");
           }
         } catch (e) {
-          console.warn("fetch messages API failed:", e);
+          // Attempt 2: Fallback to Next.js API server endpoint
+          try {
+            const res = await fetch(getApiUrl("/api/messages"), {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                action: "get",
+                userId: user.id,
+                otherId: profile.id
+              })
+            });
+            if (res.ok) {
+              const resultData = await res.json();
+              if (resultData.messages) dbMessages = resultData.messages;
+            } else {
+              console.warn("fetch messages API returned error:", res.status);
+            }
+          } catch (apiErr) {
+            console.warn("fetch messages API failed:", apiErr);
+          }
         }
+
 
         const localMsgs = getLocalMessages().filter(m => 
           (m.senderId === user.id && m.receiverId === profile.id) ||
@@ -1998,29 +2015,51 @@ export const dbService = {
 
     // PRIORITY 1: Write to Supabase first so the other user (on any device) can see it immediately
     let savedId: string | null = null;
+    
+    // Attempt 1: Direct client-side insert to Supabase
     try {
-      const res = await fetch(getApiUrl("/api/messages"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "send",
+      const { data, error } = await supabase
+        .from("messages")
+        .insert({
           senderId: user.id,
           receiverId: receiverId,
           content: text
         })
-      });
-      if (res.ok) {
-        const resultData = await res.json();
-        if (resultData.data?.id) {
-          savedId = resultData.data.id;
-        }
+        .select()
+        .single();
+      if (!error && data?.id) {
+        savedId = data.id;
       } else {
-        const errText = await res.text();
-        console.warn("fetch send message API returned error:", res.status, errText);
+        console.warn("Direct Supabase message insert failed, attempting API fallback...", error?.message);
+        throw new Error(error?.message || "insert failed");
       }
     } catch (e) {
-      console.warn("Supabase sendMessage exception:", e);
+      // Attempt 2: Fallback to Next.js API server endpoint
+      try {
+        const res = await fetch(getApiUrl("/api/messages"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "send",
+            senderId: user.id,
+            receiverId: receiverId,
+            content: text
+          })
+        });
+        if (res.ok) {
+          const resultData = await res.json();
+          if (resultData.data?.id) {
+            savedId = resultData.data.id;
+          }
+        } else {
+          const errText = await res.text();
+          console.warn("fetch send message API returned error:", res.status, errText);
+        }
+      } catch (apiErr) {
+        console.warn("Supabase sendMessage API exception:", apiErr);
+      }
     }
+
 
     // PRIORITY 2: Save to localStorage as optimistic UI cache (same-device only)
     const msgId = savedId || ("local-msg-" + Math.random().toString(36).substring(2, 9));

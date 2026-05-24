@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: "export",
+  output: process.env.VERCEL === "1" ? undefined : "export",
 
   eslint: {
     ignoreDuringBuilds: true,
